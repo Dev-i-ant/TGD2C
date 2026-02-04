@@ -49,7 +49,7 @@ export default function NewCasePage() {
 
     return (
         <div className="pb-24">
-            <PageHeader title="Новый кейс" />
+            <PageHeader title="Новый кейс" backPath="/admin/cases" />
 
             {/* Error Modal */}
             {error && (

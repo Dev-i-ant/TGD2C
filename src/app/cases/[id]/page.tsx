@@ -193,22 +193,22 @@ export default function CaseOpenPage() {
             <div className="p-6 flex flex-col gap-12 items-center">
                 {/* Case Visual */}
                 <motion.div
-                    animate={isOpening ? { rotate: [0, -5, 5, -5, 5, 0], scale: [1, 1.1, 1] } : {}}
+                    animate={isOpening ? { rotate: [0, -5, 5, -5, 5, 0], scale: [1, 1, 1] } : {}}
                     transition={{ repeat: Infinity, duration: 0.5 }}
-                    className={`w-48 h-48 bg-gradient-to-t ${caseData?.color || 'from-red-600'}/30 to-transparent rounded-2xl flex items-center justify-center border border-white/10 shadow-[0_0_50px_rgba(220,38,38,0.1)]`}
+                    className={`w-48 h-48 bg-gradient-to-t ${caseData?.color || 'from-[var(--primary)]'}/30 to-transparent rounded-sm flex items-center justify-center border border-[var(--border)] shadow-[0_0_50px_rgba(var(--primary),0.1)]`}
                 >
-                    <Package size={100} className={caseData?.color?.replace('bg-', 'text-') || 'text-red-500'} />
+                    <Package size={100} className={caseData?.color?.replace('bg-', 'text-') || 'text-[var(--accent)]'} />
                 </motion.div>
 
                 {/* Roulette UI */}
                 <div className="w-full relative py-8">
                     {/* Center Indicator */}
-                    <div className="absolute left-1/2 top-4 bottom-4 w-[2px] bg-yellow-400 z-20 shadow-[0_0_15px_rgba(250,204,21,1)]">
-                        <div className="absolute -top-1 -left-[4px] border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[6px] border-t-yellow-400"></div>
-                        <div className="absolute -bottom-1 -left-[4px] border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-bottom-[6px] border-b-yellow-400"></div>
+                    <div className="absolute left-1/2 top-4 bottom-4 w-[2px] bg-[var(--accent)] z-20 shadow-[0_0_5px_var(--accent)]">
+                        <div className="absolute -top-1 -left-[4px] border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[6px] border-t-[var(--accent)]"></div>
+                        <div className="absolute -bottom-1 -left-[4px] border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-bottom-[6px] border-b-[var(--accent)]"></div>
                     </div>
 
-                    <div className="w-full overflow-hidden dota-card h-36 flex items-center bg-black/40 border-x-0 relative">
+                    <div className="w-full overflow-hidden dota-card h-36 flex items-center bg-[var(--background)] border-x-0 relative shadow-inner">
                         <motion.div
                             key={rollKey}
                             initial={{ x: 0 }}
@@ -217,7 +217,7 @@ export default function CaseOpenPage() {
                             className="flex gap-2 px-[50%] min-w-max"
                         >
                             {rollItems.map((item, i) => (
-                                <div key={i} className={`w-28 h-28 rounded-xl ${(RARITY_COLORS[item.rarity] || 'bg-gray-500')}/10 border border-white/5 flex flex-col items-center justify-center gap-2 p-2 shrink-0 relative overflow-hidden`}>
+                                <div key={i} className={`w-28 h-28 rounded-sm ${(RARITY_COLORS[item.rarity] || 'bg-[var(--secondary)]')}/10 border border-[var(--border)] flex flex-col items-center justify-center gap-2 p-2 shrink-0 relative overflow-hidden`}>
                                     {/* Item Image or Placeholder */}
                                     {item.image ? (
                                         <img src={item.image} alt={item.name} className="w-16 h-16 object-contain drop-shadow-lg" />
@@ -227,7 +227,7 @@ export default function CaseOpenPage() {
                                         </div>
                                     )}
 
-                                    <span className="text-[9px] font-black uppercase text-white/50 text-center leading-tight truncate w-full relative z-10">{item.name}</span>
+                                    <span className="text-[9px] font-black uppercase text-[var(--accent)] text-center leading-tight truncate w-full relative z-10">{item.name}</span>
 
                                     {/* Rarity Glow */}
                                     <div className={`absolute inset-0 bg-gradient-to-t ${(RARITY_COLORS[item.rarity] || 'bg-gray-500')}/20 to-transparent opacity-50`} />
@@ -242,7 +242,7 @@ export default function CaseOpenPage() {
                     <button
                         onClick={handleOpen}
                         disabled={isOpening}
-                        className={`dota-button w-full h-16 text-xl uppercase font-black ${isOpening ? 'opacity-50 grayscale' : ''}`}
+                        className={`dota-button w-full h-16 text-xl uppercase font-bold text-[var(--accent)] tracking-widest ${isOpening ? 'opacity-50 grayscale' : ''}`}
                     >
                         {isOpening ? 'ОТКРЫВАЕМ...' : `ОТКРЫТЬ ЗА ${caseData?.price || 100} BP`}
                     </button>
@@ -258,9 +258,9 @@ export default function CaseOpenPage() {
 
                 {/* Possible Rewards List */}
                 <div className="w-full flex flex-col gap-4">
-                    <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                        <h3 className="text-sm font-black text-white/60 uppercase tracking-widest">Содержимое кейса</h3>
-                        <span className="text-[10px] text-gray-500 font-bold uppercase">{rewards.length} предметов</span>
+                    <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
+                        <h3 className="text-sm font-bold text-[var(--accent)] uppercase tracking-widest">Содержимое кейса</h3>
+                        <span className="text-[10px] text-[var(--primary)] font-bold uppercase">{rewards.length} предметов</span>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                         {rewards.map((reward) => (
@@ -293,11 +293,11 @@ export default function CaseOpenPage() {
                             <motion.div
                                 initial={{ scale: 0.5, y: 50 }}
                                 animate={{ scale: 1, y: 0 }}
-                                className="dota-card p-8 flex flex-col items-center text-center gap-6 max-w-xs border-t-4 border-t-yellow-500 relative overflow-hidden"
+                                className="dota-card p-8 flex flex-col items-center text-center gap-6 max-w-xs border-t-4 border-t-[var(--accent)] relative overflow-hidden"
                             >
-                                <div className="absolute inset-0 bg-yellow-500/5" />
+                                <div className="absolute inset-0 bg-[var(--accent)]/5" />
                                 <div className="absolute top-0 right-0 p-4">
-                                    <Sparkles className="text-yellow-500 animate-pulse" />
+                                    <Sparkles className="text-[var(--accent)] animate-pulse" />
                                 </div>
                                 <h2 className="text-xl font-black text-gray-400 uppercase tracking-widest leading-none relative z-10">Ты выиграл!</h2>
 

@@ -1,31 +1,36 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useTheme } from './ThemeProvider';
 
 export default function TelegramProvider({ children }: { children: React.ReactNode }) {
+    const { theme } = useTheme();
+
     useEffect(() => {
-        // 1. Initialize Telegram WebApp features
+        // Match Telegram UI colors with ThemeProvider / globals.css
         if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
             const tg = window.Telegram.WebApp;
-            tg.ready();
-            tg.expand();
+            const bgColor = theme === 'classic' ? '#1b1e1b' : '#0b0e11';
 
-            // Request fullscreen (hides header completely on supported devices)
-            if (tg.requestFullscreen) {
-                tg.requestFullscreen();
-            }
+            if (tg.setHeaderColor) tg.setHeaderColor(bgColor);
+            if (tg.setBackgroundColor) tg.setBackgroundColor(bgColor);
+        }
+    }, [theme]);
 
-            // Set header color to match app background
-            if (tg.setHeaderColor) {
-                tg.setHeaderColor('#0b0e11');
-            }
-            if (tg.setBackgroundColor) {
-                tg.setBackgroundColor('#0b0e11');
-            }
+    useEffect(() => {
+        // 1. Initialize Telegram WebApp features
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
 
-            if (tg.disableVerticalSwipes) {
-                tg.disableVerticalSwipes();
+        // Safe checks for newer Telegram API versions (>= 7.x)
+        try {
+            if (tg.isVersionAtLeast('7.0')) {
+                if (tg.requestFullscreen) tg.requestFullscreen();
+                if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
             }
+        } catch (e) {
+            console.warn('Advanced Telegram features not supported on this version', e);
         }
 
         // 2. Strictly block pinch-to-zoom gestures

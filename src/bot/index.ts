@@ -12,12 +12,15 @@ if (!token) {
 const bot = new Telegraf(token);
 
 bot.start(async (ctx) => {
+    const startPayload = ctx.payload; // Capture the code after /start
+    const appUrlWithParam = startPayload ? `${webAppUrl}?startapp=${startPayload}` : webAppUrl;
+
     // Set the Menu Button (the one next to the paperclip/keyboard)
     try {
         await ctx.setChatMenuButton({
             type: 'web_app',
             text: 'Играть в Dota 2',
-            web_app: { url: webAppUrl }
+            web_app: { url: appUrlWithParam }
         });
     } catch (e) {
         console.error('Failed to set menu button:', e);
@@ -26,7 +29,7 @@ bot.start(async (ctx) => {
     ctx.reply(
         `Привет, ${ctx.from.first_name}! 🎮\n\nДобро пожаловать в Dota 2 Case Opening. Готов выбить свой первый Dragonclaw Hook?`,
         Markup.inlineKeyboard([
-            [Markup.button.webApp('Открыть Mini App', webAppUrl)],
+            [Markup.button.webApp('Открыть Mini App', appUrlWithParam)],
             [Markup.button.url('Подписаться на канал', 'https://t.me/your_channel')]
         ])
     );

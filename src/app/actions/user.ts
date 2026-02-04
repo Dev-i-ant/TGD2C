@@ -3,21 +3,119 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
-export async function syncUser(data: { telegramId: string; username?: string; firstName?: string; lastName?: string }) {
+export async function syncUser(data: { telegramId: string; username?: string; firstName?: string; lastName?: string; referralCode?: string | null }) {
     try {
-        const user = await prisma.user.upsert({
-            where: { telegramId: data.telegramId },
-            update: {
-                // Only update username if it's provided, to prevent nullifying
-                ...(data.username && { username: data.username }),
-            },
-            create: {
+        const existingUser = await prisma.user.findUnique({
+            where: { telegramId: data.telegramId }
+        });
+
+        if (existingUser) {
+            // Retroactive referral check: if user exists but has NO referrer, and code is provided
+            if (!existingUser.referredById && data.referralCode && data.referralCode !== existingUser.id) {
+                const referrer = await prisma.user.findUnique({
+                    where: { id: data.referralCode }
+                });
+
+                if (referrer) {
+                    // Update user with referrer and give bonuses
+                    const updatedUser = await prisma.user.update({
+                        where: { id: existingUser.id },
+                        data: {
+                            referredById: referrer.id,
+                            points: { increment: 500 }, // Joiner bonus
+                        }
+                    });
+
+                    // Update referrer
+                    await prisma.$transaction([
+                        prisma.user.update({
+                            where: { id: referrer.id },
+                            data: {
+                                points: { increment: 500 },
+                                referralCount: { increment: 1 },
+                            }
+                        }),
+                        prisma.transaction.create({
+                            data: {
+                                userId: referrer.id,
+                                amount: 500,
+                                type: 'REFERRAL_BONUS',
+                                description: `Бонус за приглашение игрока ${updatedUser.username || updatedUser.telegramId}`
+                            }
+                        }),
+                        prisma.transaction.create({
+                            data: {
+                                userId: updatedUser.id,
+                                amount: 500,
+                                type: 'REFERRAL_BONUS',
+                                description: `Бонус за вступление по приглашению (ретроактивно)`
+                            }
+                        })
+                    ]);
+
+                    return { success: true, user: updatedUser };
+                }
+            }
+
+            // Standard info update
+            const updatedUser = await prisma.user.update({
+                where: { id: existingUser.id },
+                data: {
+                    ...(data.username && { username: data.username }),
+                }
+            });
+            return { success: true, user: updatedUser };
+        }
+
+        // New User logic (same as before)
+        let referredById = null;
+        if (data.referralCode) {
+            const referrer = await prisma.user.findUnique({
+                where: { id: data.referralCode }
+            });
+            if (referrer) {
+                referredById = referrer.id;
+            }
+        }
+
+        const newUser = await prisma.user.create({
+            data: {
                 telegramId: data.telegramId,
                 username: data.username || data.firstName || '',
-                points: 1000, // Initial bonus points for testing
+                points: referredById ? 1500 : 1000,
+                referredById: referredById,
             },
         });
-        return { success: true, user };
+
+        if (referredById) {
+            await prisma.$transaction([
+                prisma.user.update({
+                    where: { id: referredById },
+                    data: {
+                        points: { increment: 500 },
+                        referralCount: { increment: 1 },
+                    }
+                }),
+                prisma.transaction.create({
+                    data: {
+                        userId: referredById,
+                        amount: 500,
+                        type: 'REFERRAL_BONUS',
+                        description: `Бонус: ${newUser.username || newUser.telegramId}`
+                    }
+                }),
+                prisma.transaction.create({
+                    data: {
+                        userId: newUser.id,
+                        amount: 500,
+                        type: 'REFERRAL_BONUS',
+                        description: `Бонус за вступление по приглашению`
+                    }
+                })
+            ]);
+        }
+
+        return { success: true, user: newUser };
     } catch (error) {
         console.error('Failed to sync user:', error);
         return { success: false, error: 'Database error' };
@@ -26,16 +124,78 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
 
 export async function getUserData(telegramId: string) {
     try {
-        return await prisma.user.findUnique({
+        const user = await prisma.user.findUnique({
             where: { telegramId },
             include: {
-                inventory: true,
-                transactions: {
-                    orderBy: { createdAt: 'desc' }
+                inventory: {
+                    include: { case: true },
+                    orderBy: { weight: 'desc' },
+                    take: 50
                 }
             }
         });
+
+        if (!user) return null;
+
+        // --- Safe Self-healing ---
+        try {
+            if (!user.bestItemName && user.inventory.length > 0) {
+                const bestInInv = user.inventory[0];
+                await prisma.user.update({
+                    where: { id: user.id },
+                    data: {
+                        bestItemName: bestInInv.name,
+                        bestItemRarity: bestInInv.rarity,
+                        bestItemImage: bestInInv.image,
+                        bestItemWeight: bestInInv.weight
+                    }
+                });
+                user.bestItemName = bestInInv.name;
+                user.bestItemRarity = bestInInv.rarity;
+                user.bestItemImage = bestInInv.image;
+                user.bestItemWeight = bestInInv.weight;
+            }
+        } catch (healErr) {
+            console.error('Self-healing failed but continuing:', healErr);
+        }
+
+        // Calculate stats using dedicated query for accuracy
+        const allTransactions = await prisma.transaction.findMany({
+            where: { userId: user.id }
+        });
+
+        const stats = {
+            totalOpened: allTransactions.filter(t => t.type === 'CASE_OPEN').length,
+            totalEarned: allTransactions.filter(t => t.amount > 0).reduce((acc, t) => acc + (t.amount || 0), 0),
+            bestInInventory: user.inventory.length > 0 ? user.inventory[0] : null,
+            inventoryCount: await prisma.reward.count({ where: { userId: user.id } })
+        };
+
+        const historicalBest = user.bestItemName ? {
+            name: user.bestItemName,
+            rarity: user.bestItemRarity,
+            image: user.bestItemImage,
+            weight: user.bestItemWeight
+        } : null;
+
+        // Sort transactions by date descending for UI
+        const transactions = allTransactions.sort((a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+        // Return clean, explicit object
+        return {
+            id: user.id,
+            telegramId: user.telegramId,
+            username: user.username,
+            points: user.points,
+            stats,
+            historicalBest,
+            inventory: user.inventory,
+            transactions
+        };
     } catch (error) {
+        console.error('Error in getUserData server action:', error);
         return null;
     }
 }
@@ -83,11 +243,35 @@ export async function openCaseAction(telegramId: string, caseId: string) {
                 data: { points: { decrement: caseData.price } },
             });
 
+            // Commission Distribution
+            if (user.referredById) {
+                const commission = Math.floor(caseData.price * 0.1);
+                if (commission > 0) {
+                    await tx.user.update({
+                        where: { id: user.referredById },
+                        data: {
+                            points: { increment: commission },
+                            referralEarnings: { increment: commission }
+                        }
+                    });
+
+                    await tx.transaction.create({
+                        data: {
+                            userId: user.referredById,
+                            amount: commission,
+                            type: 'REFERRAL_COMMISSION',
+                            description: `Доход от друга: ${caseData.name}`,
+                        }
+                    });
+                }
+            }
+
             // Add reward to user (creating a copy for inventory)
             const inventoryItem = await tx.reward.create({
                 data: {
                     name: winner.name,
                     rarity: winner.rarity,
+                    image: winner.image,
                     weight: winner.weight,
                     caseId: caseId,
                     userId: user.id, // Set the owner
@@ -100,9 +284,22 @@ export async function openCaseAction(telegramId: string, caseId: string) {
                     userId: user.id,
                     amount: -caseData.price,
                     type: 'CASE_OPEN',
-                    description: `Открытие кейса: ${caseData.name}`,
+                    description: `Кейс: ${caseData.name}`,
                 }
             });
+
+            // Update historical record if this drop is better
+            if (winner.weight > (user.bestItemWeight || 0)) {
+                await tx.user.update({
+                    where: { id: user.id },
+                    data: {
+                        bestItemName: winner.name,
+                        bestItemRarity: winner.rarity,
+                        bestItemImage: winner.image,
+                        bestItemWeight: winner.weight
+                    }
+                });
+            }
 
             return { updatedUser, inventoryItem };
         });
@@ -149,7 +346,7 @@ export async function sellItemAction(telegramId: string, itemId: string) {
                     userId: user.id,
                     amount: sellPrice,
                     type: 'ITEM_SELL',
-                    description: `Продажа предмета: ${item.name}`,
+                    description: `Продажа: ${item.name}`,
                 }
             });
         });
@@ -162,5 +359,27 @@ export async function sellItemAction(telegramId: string, itemId: string) {
     } catch (error) {
         console.error('Sell item error:', error);
         return { success: false, error: 'Ошибка при продаже' };
+    }
+}
+
+export async function getLeaderboard() {
+    try {
+        const topUsers = await prisma.user.findMany({
+            orderBy: { points: 'desc' },
+            take: 50,
+            select: {
+                id: true,
+                telegramId: true,
+                username: true,
+                points: true,
+                _count: {
+                    select: { inventory: true }
+                }
+            }
+        });
+        return { success: true, leaderboard: topUsers };
+    } catch (error) {
+        console.error('Get leaderboard error:', error);
+        return { success: false, error: 'Database error' };
     }
 }

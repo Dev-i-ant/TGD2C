@@ -33,7 +33,7 @@ export default function AdminCases() {
 
     return (
         <div className="pb-24">
-            <PageHeader title="Кейсы (Админ)" />
+            <PageHeader title="Управление кейсами" backPath="/admin" />
 
             <div className="p-6 flex flex-col gap-6">
                 <Link

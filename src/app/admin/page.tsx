@@ -15,7 +15,7 @@ export default function AdminDashboard() {
 
     return (
         <div className="pb-24">
-            <PageHeader title="Админ-панель" />
+            <PageHeader title="Админ-панель" backPath="/profile" />
 
             <div className="p-6 flex flex-col gap-4">
                 <div className="bg-red-600/10 border border-red-500/20 rounded-2xl p-6 mb-4">

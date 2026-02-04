@@ -30,13 +30,19 @@ export default function Home() {
         const user = tg.initDataUnsafe?.user;
         if (user) {
           setPhotoUrl(user.photo_url || null);
+
+          // Failsafe: check both initData and URL search params
+          const urlParams = new URLSearchParams(window.location.search);
+          const referralCode = tg.initDataUnsafe?.start_param || urlParams.get('startapp') || urlParams.get('start');
+
           const result = await syncUser({
             telegramId: user.id.toString(),
             username: user.username,
             firstName: user.first_name,
-            lastName: user.last_name
+            lastName: user.last_name,
+            referralCode: referralCode
           });
-          if (result.success) {
+          if (result.success && result.user) {
             setPoints(result.user.points);
             setUsername(`${user.first_name}${user.last_name ? ' ' + user.last_name : ''}`);
           }
@@ -54,10 +60,10 @@ export default function Home() {
       {/* Header / Profile */}
       <section className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-[var(--foreground)] flex items-center gap-2">
             Привет, {username} <span className="animate-pulse">👋</span>
           </h1>
-          <p className="text-gray-400 text-sm">Готов открыть пару кейсов?</p>
+          <p className="text-[var(--foreground)]/60 text-sm font-medium">Готов открыть пару кейсов?</p>
         </div>
         <div className="w-12 h-12 rounded-full bg-red-600/20 border border-red-500/50 flex items-center justify-center overflow-hidden">
           {photoUrl ? (

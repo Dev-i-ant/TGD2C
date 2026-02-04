@@ -72,7 +72,7 @@ export default function CaseItemsPage() {
 
     return (
         <div className="pb-24">
-            <PageHeader title="Содержимое кейса" />
+            <PageHeader title="Содержимое кейса" backPath={`/admin/cases/${id}`} />
 
             <div className="p-6 flex flex-col gap-8">
                 {/* Form to add item */}

@@ -7,11 +7,13 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getCases } from './admin/cases/actions';
 import { syncUser } from './actions/user';
+import { useTranslation } from '@/components/LanguageProvider';
 
 export default function Home() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [points, setPoints] = useState(0);
-  const [username, setUsername] = useState('Игрок');
+  const [username, setUsername] = useState(t.common.loading);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [featuredCase, setFeaturedCase] = useState<any>(null);
@@ -58,88 +60,94 @@ export default function Home() {
   return (
     <div className="flex flex-col gap-6 p-6 pb-24 pt-[calc(7rem+env(safe-area-inset-top))]">
       {/* Header / Profile */}
-      <section className="flex items-center justify-between">
+      <section className="flex items-center justify-between steam-bevel p-4 mx-0">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--foreground)] flex items-center gap-2">
-            Привет, {username} <span className="animate-pulse">👋</span>
+          <h1 className="text-sm font-black text-[var(--foreground)] steam-header-text">
+            {username}
           </h1>
-          <p className="text-[var(--foreground)]/60 text-sm font-medium">Готов открыть пару кейсов?</p>
+          <p className="steam-header-text text-[var(--foreground)]/40 text-[9px] mt-0.5 opacity-50">{t.common.status_online}</p>
         </div>
-        <div className="w-12 h-12 rounded-full bg-red-600/20 border border-red-500/50 flex items-center justify-center overflow-hidden">
+        <div className="w-10 h-10 steam-emboss p-1 flex items-center justify-center overflow-hidden">
           {photoUrl ? (
-            <img src={photoUrl} alt={username} className="w-full h-full object-cover" />
+            <img src={photoUrl} alt={username} className="w-full h-full object-cover grayscale-[0.2]" />
           ) : (
-            <Sparkles className="text-red-500" />
+            <div className="bg-[var(--accent)]/20 w-full h-full flex items-center justify-center">
+              <Sparkles className="text-[var(--accent)]" size={20} />
+            </div>
           )}
         </div>
       </section>
 
       {/* Points Card */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="dota-card p-6 flex flex-col items-center justify-center gap-2 relative overflow-hidden"
+        className="steam-emboss p-6 flex flex-col items-center justify-center gap-2 relative overflow-hidden"
       >
-        <div className="absolute top-0 right-0 p-4 opacity-10">
-          <Wallet size={80} />
+        <div className="absolute inset-0 opacity-5 pointer-events-none flex gap-1 items-end p-1">
+          {Array.from({ length: 40 }).map((_, i) => (
+            <div key={i} className="flex-1 bg-[var(--accent)]" style={{ height: `${Math.random() * 100}%` }} />
+          ))}
         </div>
-        <span className="text-gray-400 uppercase text-xs font-bold tracking-widest">Твой баланс</span>
-        <div className="text-4xl font-black text-white flex items-center gap-2">
-          {points} <span className="text-red-500 text-2xl">BP</span>
+        <span className="steam-header-text text-[var(--foreground)]/40 text-[9px] relative z-10">{t.home.network_balance}</span>
+        <div className="text-3xl font-black text-[var(--foreground)] flex items-center gap-2 relative z-10">
+          {points} <span className="text-[var(--accent)] text-xl">{t.common.bp}</span>
         </div>
         <button
           onClick={() => router.push('/history')}
-          className="mt-4 text-xs bg-white/5 border border-white/10 px-4 py-2 rounded-full hover:bg-white/10 transition-colors active:scale-95"
+          className="steam-bevel mt-4 steam-header-text text-[9px] px-4 py-1.5 transition-none relative z-10"
         >
-          История транзакций
+          {t.home.view_transactions}
         </button>
       </motion.div>
 
       {/* Grid Menu */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-2">
         <Link
           href="/cases"
           prefetch={true}
-          className="dota-card p-6 flex flex-col items-center gap-3 hover:border-red-500/50 transition-colors pointer-events-auto active:scale-95"
+          className="steam-bevel p-6 flex flex-col items-center gap-3 active:translate-y-[1px] transition-none"
         >
-          <div className="w-12 h-12 rounded-xl bg-red-600/10 flex items-center justify-center">
-            <Package className="text-red-500" />
+          <div className="w-10 h-10 steam-emboss flex items-center justify-center">
+            <Package className="text-[var(--accent)]" size={20} />
           </div>
-          <span className="font-bold text-white uppercase text-xs tracking-widest">Кейсы</span>
+          <span className="steam-header-text text-[10px] text-[var(--foreground)]">{t.nav.cases}</span>
         </Link>
 
         <Link
           href="/tasks"
           prefetch={true}
-          className="dota-card p-6 flex flex-col items-center gap-3 hover:border-blue-500/50 transition-colors pointer-events-auto active:scale-95"
+          className="steam-bevel p-6 flex flex-col items-center gap-3 active:translate-y-[1px] transition-none"
         >
-          <div className="w-12 h-12 rounded-xl bg-blue-600/10 flex items-center justify-center">
-            <ClipboardList className="text-blue-500" />
+          <div className="w-10 h-10 steam-emboss flex items-center justify-center">
+            <ClipboardList className="text-[var(--accent)]" size={20} />
           </div>
-          <span className="font-bold text-white uppercase text-xs tracking-widest">Задания</span>
+          <span className="steam-header-text text-[10px] text-[var(--foreground)]">{t.nav.tasks}</span>
         </Link>
       </div>
 
-      {/* Featured Case teaser */}
       {featuredCase && (
-        <section className="mt-4">
-          <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-            Рекомендуемое
-          </h2>
-          <div className="dota-card p-4 flex gap-4 items-center">
-            <div className={`w-20 h-20 bg-gradient-to-t ${featuredCase.color}/40 to-transparent rounded-lg flex items-center justify-center border border-white/10`}>
-              <Package size={40} className="text-white/40" />
+        <section className="flex flex-col gap-2">
+          <div className="steam-bevel px-3 py-1 bg-[var(--secondary)]">
+            <h2 className="steam-header-text text-[9px] text-[var(--foreground)] px-1">
+              {t.home.recommended}
+            </h2>
+          </div>
+          <div className="steam-bevel p-2 flex gap-4 items-center">
+            <div className={`w-16 h-16 steam-emboss flex items-center justify-center relative overflow-hidden`}>
+              <div className="absolute inset-0 bg-white/5" />
+              <Package size={32} className="text-[var(--accent)]/40 relative z-10" />
             </div>
             <div className="flex-1">
-              <h3 className="font-bold text-white uppercase text-sm tracking-tight">{featuredCase.name}</h3>
-              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{featuredCase.rarity}</p>
+              <h3 className="steam-header-text text-[var(--foreground)] text-xs tracking-tight">{featuredCase.name}</h3>
+              <p className="steam-header-text text-[8px] text-[var(--foreground)]/40">{featuredCase.rarity}</p>
               <div className="mt-2 flex items-center justify-between">
-                <span className="text-red-500 font-black">{featuredCase.price} BP</span>
+                <span className="text-[var(--accent)] font-black text-sm">{featuredCase.price} {t.common.bp}</span>
                 <button
                   onClick={() => router.push(`/cases/${featuredCase.id}`)}
-                  className="text-[10px] bg-red-600 px-4 py-1.5 rounded-lg uppercase font-black active:scale-95 transition-transform"
+                  className="steam-bevel bg-[var(--background)] text-[var(--foreground)] px-4 py-1.5 uppercase font-black text-[9px] active:translate-y-[1px] transition-none"
                 >
-                  Открыть
+                  {t.common.open}
                 </button>
               </div>
             </div>

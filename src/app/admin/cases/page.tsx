@@ -38,49 +38,49 @@ export default function AdminCases() {
             <div className="p-6 flex flex-col gap-6">
                 <Link
                     href="/admin/cases/new"
-                    className="dota-button w-full h-14 flex items-center justify-center gap-2 uppercase font-black text-sm tracking-widest shadow-[0_0_20px_rgba(220,38,38,0.2)]"
+                    className="steam-bevel w-full h-14 flex items-center justify-center gap-2 uppercase font-black text-xs tracking-[0.2em] active:translate-y-[1px] transition-none"
                 >
-                    <Plus size={20} />
-                    <span>Создать новый кейс</span>
+                    <Plus size={18} />
+                    <span>CREATE_NEW_UNIT</span>
                 </Link>
 
                 <div className="flex flex-col gap-4">
-                    <h3 className="text-xs font-black text-white/40 uppercase tracking-widest px-2">Текущие кейсы</h3>
+                    <h3 className="text-xs font-black text-[var(--accent)] uppercase tracking-widest px-2">Текущие кейсы</h3>
 
                     {isLoading ? (
-                        <div className="flex flex-col gap-4">
-                            {[1, 2].map(i => (
-                                <div key={i} className="h-24 w-full bg-white/5 animate-pulse rounded-2xl" />
+                        <div className="flex flex-col gap-2">
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="h-20 w-full steam-bevel animate-pulse" />
                             ))}
                         </div>
                     ) : cases.length === 0 ? (
                         <div className="text-center py-10 text-gray-600 text-xs font-bold uppercase">Кейсов пока нет</div>
                     ) : (
                         cases.map((c) => (
-                            <div key={c.id} className="dota-card p-4 flex items-center gap-4 bg-white/[0.02]">
-                                <div className={`w-14 h-14 rounded-lg ${c.color}/20 border border-white/5 flex items-center justify-center`}>
-                                    <Package size={24} className={c.color.replace('bg-', 'text-')} />
+                            <div key={c.id} className="steam-bevel p-3 flex items-center gap-4">
+                                <div className={`w-12 h-12 steam-emboss flex items-center justify-center`}>
+                                    <Package size={20} className={c.color.replace('bg-', 'text-').replace('color-', 'text-')} />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h4 className="font-bold text-white text-sm truncate uppercase tracking-tight">{c.name}</h4>
-                                    <div className="flex items-center gap-3 text-[10px] text-gray-500 font-bold uppercase mt-1">
-                                        <span>{c.price} BP</span>
-                                        <span className="w-1 h-1 rounded-full bg-gray-800" />
-                                        <span>{c.rarity}</span>
+                                    <h4 className="font-black text-[var(--foreground)] text-[11px] truncate uppercase tracking-tighter">{c.name}</h4>
+                                    <div className="flex items-center gap-3 text-[8px] text-[var(--foreground)]/40 font-black uppercase mt-1 tracking-widest">
+                                        <span>COST: {c.price} BP</span>
+                                        <span className="w-1 h-1 bg-[var(--border)]" />
+                                        <span>TYPE: {c.rarity}</span>
                                     </div>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex gap-1">
                                     <Link
                                         href={`/admin/cases/${c.id}`}
-                                        className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center hover:text-blue-500 transition-colors border border-white/5"
+                                        className="w-8 h-8 steam-bevel flex items-center justify-center hover:bg-[var(--secondary)] active:translate-y-[1px] transition-none"
                                     >
-                                        <Edit2 size={16} />
+                                        <Edit2 size={14} className="text-[var(--foreground)]" />
                                     </Link>
                                     <button
                                         onClick={() => handleDelete(c.id, c.name)}
-                                        className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 hover:bg-red-500/20 transition-colors border border-red-500/20"
+                                        className="w-8 h-8 steam-bevel flex items-center justify-center text-red-500/50 hover:text-red-500 active:translate-y-[1px] transition-none"
                                     >
-                                        <Trash2 size={16} />
+                                        <Trash2 size={14} />
                                     </button>
                                 </div>
                             </div>

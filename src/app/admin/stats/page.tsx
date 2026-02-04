@@ -4,9 +4,7 @@ import { useEffect, useState } from 'react';
 import PageHeader from '@/components/ui/PageHeader';
 import { motion } from 'framer-motion';
 import { BarChart3, Users, Wallet, Package, TrendingUp } from 'lucide-react';
-import { prisma } from '@/lib/prisma'; // This won't work on client, need server action
-
-// But wait, it's easier to create a small server action for this.
+// Server action for fetching stats
 import { getAdminStats } from './actions';
 
 export default function AdminStatsPage() {
@@ -26,9 +24,9 @@ export default function AdminStatsPage() {
         return (
             <div className="pb-24">
                 <PageHeader title="Статистика" backPath="/admin" />
-                <div className="p-6 grid grid-cols-2 gap-4 animate-pulse">
+                <div className="p-6 grid grid-cols-2 gap-2 animate-pulse">
                     {[1, 2, 3, 4].map(i => (
-                        <div key={i} className="h-32 bg-white/5 rounded-2xl" />
+                        <div key={i} className="h-32 steam-bevel" />
                     ))}
                 </div>
             </div>
@@ -47,26 +45,26 @@ export default function AdminStatsPage() {
             <PageHeader title="Статистика" backPath="/admin" />
 
             <div className="p-6 flex flex-col gap-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-2">
                     {cards.map((card, index) => (
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: index * 0.1 }}
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.05 }}
                             key={card.label}
-                            className="dota-card p-6 flex flex-col items-center justify-center text-center gap-2"
+                            className="steam-emboss p-4 flex flex-col items-center justify-center text-center gap-2"
                         >
-                            <card.icon className={card.color} size={24} />
-                            <span className="text-2xl font-black text-white">{card.value.toLocaleString()}</span>
-                            <span className="text-[9px] text-gray-500 uppercase font-black tracking-widest">{card.label}</span>
+                            <card.icon className={`${card.color} opacity-40`} size={20} />
+                            <span className="text-xl font-black text-[var(--foreground)]">{card.value.toLocaleString()}</span>
+                            <span className="steam-header-text text-[8px] text-[var(--foreground)]/40">{card.label}</span>
                         </motion.div>
                     ))}
                 </div>
 
-                <div className="dota-card p-6 bg-transparent border-dashed border-gray-800 flex flex-col gap-4">
-                    <h3 className="text-white font-bold uppercase text-xs tracking-widest">Последние данные</h3>
-                    <p className="text-gray-500 text-[10px] leading-relaxed uppercase font-bold">
-                        Статистика обновляется в реальном времени на основе текущего состояния базы данных.
+                <div className="steam-bevel p-4 border-dashed bg-black/5 flex flex-col gap-2">
+                    <h3 className="text-[var(--foreground)]/60 font-black uppercase text-[9px] tracking-[0.2em]">STATISTICS_ENGINE_LOG</h3>
+                    <p className="text-[var(--foreground)]/30 text-[8px] leading-relaxed uppercase font-bold tracking-widest">
+                        DATA_IS_FETCHED_DIRECTLY_FROM_REMOTE_SERVER_IN_REALTIME.
                     </p>
                 </div>
             </div>

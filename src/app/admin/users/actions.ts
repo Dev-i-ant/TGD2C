@@ -12,6 +12,7 @@ export async function getAllUsers() {
                 telegramId: true,
                 username: true,
                 points: true,
+                titles: true,
                 createdAt: true,
                 _count: {
                     select: { inventory: true, transactions: true }
@@ -36,5 +37,20 @@ export async function updateUserPoints(userId: string, points: number) {
     } catch (error) {
         console.error('Failed to update user points:', error);
         return { success: false, error: 'Ошибка при обновлении баланса' };
+    }
+}
+
+export async function updateUserTitles(userId: string, titles: string) {
+    try {
+        await prisma.user.update({
+            where: { id: userId },
+            data: { titles }
+        });
+        revalidatePath('/admin/users');
+        revalidatePath('/profile');
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to update user titles:', error);
+        return { success: false, error: 'Ошибка при обновлении званий' };
     }
 }

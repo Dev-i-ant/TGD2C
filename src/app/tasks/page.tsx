@@ -6,7 +6,10 @@ import { motion } from 'framer-motion';
 import { CheckCircle2, Send, Users, ExternalLink, ClipboardList, Check } from 'lucide-react';
 import { getTasks, getUserTaskStatus, completeTaskAction } from '../actions/tasks';
 
+import { useTranslation } from '@/components/LanguageProvider';
+
 export default function TasksPage() {
+    const { t } = useTranslation();
     const [tasks, setTasks] = useState<any[]>([]);
     const [completedTaskIds, setCompletedTaskIds] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -86,7 +89,7 @@ export default function TasksPage() {
 
     return (
         <div className="pb-24">
-            <PageHeader title="Задания" />
+            <PageHeader title={t.tasks.title} />
 
             <div className="flex flex-col gap-4 p-6">
                 {isLoading ? (
@@ -97,7 +100,7 @@ export default function TasksPage() {
                     </div>
                 ) : tasks.length === 0 ? (
                     <div className="dota-card p-12 flex flex-col items-center justify-center text-center gap-4 border-dashed bg-transparent">
-                        <p className="text-gray-600 text-[10px] uppercase font-bold text-center">Заданий пока нет. Заходи позже!</p>
+                        <p className="text-gray-600 text-[10px] uppercase font-bold text-center">{t.common.soon}</p>
                     </div>
                 ) : (
                     tasks.map((task, index) => {
@@ -110,33 +113,29 @@ export default function TasksPage() {
                                 key={task.id}
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.05, duration: 0.2 }}
-                                className={`dota-card p-4 flex items-center gap-4 transition-opacity ${isCompleted ? 'opacity-50' : ''}`}
+                                transition={{ delay: index * 0.05 }}
+                                className={`steam-bevel p-2 flex items-center gap-4 transition-opacity ${isCompleted ? 'opacity-50 grayscale' : ''}`}
                             >
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${isCompleted ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}>
-                                    {isCompleted ? <Check size={24} /> : <Icon size={24} />}
+                                <div className={`w-10 h-10 steam-emboss flex items-center justify-center ${isCompleted ? 'text-green-500/50' : 'text-[var(--accent)]'}`}>
+                                    {isCompleted ? <Check size={20} /> : <Icon size={20} />}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h3 className="font-bold text-white truncate text-sm uppercase">{task.title}</h3>
-                                    <p className="text-[10px] text-white/40 line-clamp-1 uppercase font-bold">{task.description}</p>
+                                    <h3 className="font-bold text-[var(--foreground)] truncate text-[11px] uppercase tracking-tighter">{task.title}</h3>
+                                    <p className="text-[9px] text-[var(--foreground)]/40 line-clamp-1 uppercase font-bold tracking-tighter">{task.description}</p>
                                 </div>
                                 <div className="flex flex-col items-end gap-2 text-right">
-                                    <span className="text-yellow-500 font-black text-xs">+{task.points} BP</span>
+                                    <span className="text-[var(--accent)] font-black text-[10px]">+{task.points} {t.common.bp}</span>
                                     {isCompleted ? (
-                                        <div className="bg-green-500/20 text-green-500 p-1.5 rounded-lg border border-green-500/20">
-                                            <Check size={16} />
+                                        <div className="steam-emboss text-green-500/50 p-1">
+                                            <Check size={14} />
                                         </div>
                                     ) : (
                                         <button
                                             disabled={claimingId === task.id}
                                             onClick={() => handleAction(task)}
-                                            className={`${isClaimable ? 'bg-green-600/20 text-green-400 border-green-500/20 px-3' : 'bg-blue-600/20 text-blue-400 border-blue-500/20 px-1.5'} hover:opacity-80 py-1.5 rounded-lg transition-all border active:scale-95 disabled:opacity-50`}
+                                            className="steam-bevel h-8 px-3 text-[9px] font-black uppercase active:translate-y-[1px] transition-none disabled:opacity-50"
                                         >
-                                            {isClaimable ? (
-                                                <span className="text-[10px] font-black uppercase">Забрать</span>
-                                            ) : (
-                                                <ExternalLink size={16} />
-                                            )}
+                                            {isClaimable ? t.tasks.claim.toUpperCase() : t.common.open.toUpperCase()}
                                         </button>
                                     )}
                                 </div>

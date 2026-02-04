@@ -15,12 +15,12 @@ bot.start(async (ctx) => {
     const startPayload = ctx.payload; // Capture the code after /start
     const appUrlWithParam = startPayload ? `${webAppUrl}?startapp=${startPayload}` : webAppUrl;
 
-    // Set the Menu Button (the one next to the paperclip/keyboard)
+    // Force update Menu Button for this specific chat to ensure correct text and URL
     try {
         await ctx.setChatMenuButton({
             type: 'web_app',
-            text: 'Играть в Dota 2',
-            web_app: { url: appUrlWithParam }
+            text: 'Открыть кейсы',
+            web_app: { url: webAppUrl }
         });
     } catch (e) {
         console.error('Failed to set menu button:', e);

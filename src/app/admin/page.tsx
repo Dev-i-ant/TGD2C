@@ -18,9 +18,9 @@ export default function AdminDashboard() {
             <PageHeader title="Админ-панель" backPath="/profile" />
 
             <div className="p-6 flex flex-col gap-4">
-                <div className="bg-red-600/10 border border-red-500/20 rounded-2xl p-6 mb-4">
-                    <h2 className="text-xl font-black text-white uppercase tracking-tighter">Панель управления</h2>
-                    <p className="text-xs text-gray-500 uppercase font-bold mt-1">Здесь вы можете настраивать контент приложения</p>
+                <div className="steam-bevel border-t-red-600 bg-[var(--background)] p-6 mb-4">
+                    <h2 className="text-xs font-black text-[var(--foreground)] uppercase tracking-[0.2em]">ADMIN_ROOT_ACCESS</h2>
+                    <p className="text-[9px] text-[var(--foreground)]/40 uppercase font-black mt-2 tracking-widest">SYSTEM_MAINTENANCE_MODULE_1.0</p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-3">
@@ -28,24 +28,24 @@ export default function AdminDashboard() {
                         <Link
                             key={link.path}
                             href={link.path}
-                            className="dota-card p-4 flex items-center justify-between hover:bg-white/5 transition-all group active:scale-[0.98]"
+                            className="steam-bevel p-3 flex items-center justify-between hover:bg-[var(--secondary)] transition-none group active:translate-y-[1px]"
                         >
                             <div className="flex items-center gap-4">
-                                <div className={`w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center ${link.color}`}>
-                                    <link.icon size={24} />
+                                <div className={`w-10 h-10 steam-emboss flex items-center justify-center ${link.color} opacity-60`}>
+                                    <link.icon size={20} />
                                 </div>
-                                <span className="font-bold text-white uppercase text-sm tracking-tight">{link.label}</span>
+                                <span className="font-black text-[var(--foreground)] uppercase text-[11px] tracking-widest">{link.label}</span>
                             </div>
-                            <ChevronRight size={20} className="text-gray-700 group-hover:text-white transition-colors" />
+                            <ChevronRight size={16} className="text-gray-700 group-hover:text-[var(--foreground)]" />
                         </Link>
                     ))}
                 </div>
 
-                <div className="mt-8 dota-card p-6 border-dashed border-gray-800 bg-transparent flex flex-col items-center text-center gap-4">
-                    <Settings className="text-gray-700" size={32} />
+                <div className="mt-8 steam-emboss p-6 flex flex-col items-center text-center gap-4 bg-[var(--background)]">
+                    <Settings className="text-[var(--foreground)]/20" size={32} />
                     <div>
-                        <p className="text-gray-500 font-bold uppercase text-[10px] tracking-widest leading-relaxed">
-                            Доступ ограничен.<br />Только для авторизованных администраторов.
+                        <p className="text-[var(--foreground)]/40 font-black uppercase text-[9px] tracking-[0.2em] leading-relaxed">
+                            UNAUTHORIZED_ACCESS_IS_LOGGED.<br />SECURE_ENVIRONMENT_ONLY.
                         </p>
                     </div>
                 </div>

@@ -7,7 +7,10 @@ import { Users, Copy, Share2, Wallet, TrendingUp, UserPlus, Check } from 'lucide
 import { getReferralData } from '../actions/referrals';
 import { syncUser } from '../actions/user';
 
+import { useTranslation } from '@/components/LanguageProvider';
+
 export default function FriendsPage() {
+    const { t } = useTranslation();
     const [referralData, setReferralData] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [copied, setCopied] = useState(false);
@@ -52,7 +55,7 @@ export default function FriendsPage() {
 
     const handleShare = () => {
         if (window.Telegram?.WebApp && referralLink) {
-            const text = `Заходи и открывай кейсы Dota 2! При входе по моей ссылке получишь +500 BP бонусом! 🎁`;
+            const text = t.friends.share_text;
             // Use share URL format that Telegram understands best
             const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(text)}`;
             window.Telegram.WebApp.openTelegramLink(shareUrl);
@@ -61,92 +64,103 @@ export default function FriendsPage() {
 
     return (
         <div className="pb-24">
-            <PageHeader title="Друзья" />
+            <PageHeader title={t.friends.title} />
 
             <div className="p-6 flex flex-col gap-6">
                 {/* Referral Invite Card */}
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="dota-card p-6 bg-gradient-to-br from-[#1c242d] to-[#12161b] relative overflow-hidden"
+                    className="steam-bevel p-6 bg-[var(--background)] flex flex-col gap-4"
                 >
-                    <div className="relative z-10">
-                        <h3 className="text-white font-black uppercase text-lg tracking-tight leading-none mb-1">Приглашай друзей</h3>
-                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-6">Зарабатывай 10% от их открытий</p>
+                    <div>
+                        <h3 className="text-[var(--foreground)] font-black uppercase text-xs tracking-[0.2em] mb-1">{t.friends.referral_program.toUpperCase()}</h3>
+                        <p className="text-[9px] text-[var(--foreground)]/60 font-bold uppercase tracking-widest mb-4">{t.friends.invite_desc.toUpperCase()}</p>
 
-                        <div className="bg-black/40 border border-white/5 rounded-xl p-3 flex items-center justify-between gap-4 mb-4">
-                            <span className="text-gray-400 text-[10px] truncate font-mono">{referralLink || 'Генерация ссылки...'}</span>
+                        <div className="steam-emboss bg-black/20 p-2 flex items-center justify-between gap-4 mb-4">
+                            <span className="text-[var(--foreground)]/30 text-[9px] truncate font-mono uppercase tracking-tighter">{referralLink || t.friends.generate_link.toUpperCase()}</span>
                             <button
                                 onClick={handleCopy}
-                                className="text-blue-500 hover:text-blue-400 transition-colors"
+                                className="text-[var(--accent)] hover:opacity-80 transition-none active:translate-y-[1px]"
                             >
-                                {copied ? <Check size={18} /> : <Copy size={18} />}
+                                {copied ? <Check size={16} /> : <Copy size={16} />}
                             </button>
                         </div>
 
                         <button
                             onClick={handleShare}
                             disabled={!referralLink}
-                            className="dota-button w-full h-12 flex items-center justify-center gap-2 uppercase font-black text-xs tracking-[0.2em] disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="steam-bevel w-full h-12 flex items-center justify-center gap-2 uppercase font-black text-[10px] tracking-[0.2em] disabled:opacity-50 active:translate-y-[1px] transition-none"
                         >
-                            <Share2 size={16} /> Поделиться ссылкой
+                            <Share2 size={16} /> {t.friends.share.toUpperCase()}
                         </button>
                     </div>
                 </motion.div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="dota-card p-4 flex flex-col gap-2">
-                        <div className="flex items-center gap-2 text-blue-500">
-                            <Users size={16} />
-                            <span className="text-[9px] font-black uppercase tracking-widest">Приглашено</span>
-                        </div>
-                        <span className="text-xl font-black text-white">{referralData?.referralCount || 0}</span>
+                <div className="grid grid-cols-2 gap-2">
+                    <div className="steam-emboss p-4 flex flex-col gap-1 items-center justify-center">
+                        <Users size={14} className="text-[var(--accent)] mb-1" />
+                        <span className="text-xl font-black text-[var(--foreground)] leading-none">{referralData?.referralCount || 0}</span>
+                        <span className="text-[9px] text-[var(--foreground)]/60 font-bold uppercase tracking-widest mt-1">{t.friends.recruited.toUpperCase()}</span>
                     </div>
-                    <div className="dota-card p-4 flex flex-col gap-2">
-                        <div className="flex items-center gap-2 text-yellow-500">
-                            <Wallet size={16} />
-                            <span className="text-[9px] font-black uppercase tracking-widest">Заработано</span>
+                    <div className="steam-emboss p-4 flex flex-col gap-1 items-center justify-center">
+                        <Wallet size={14} className="text-[var(--accent)] mb-1" />
+                        <span className="text-xl font-black text-[var(--foreground)] leading-none">{referralData?.referralEarnings || 0}</span>
+                        <span className="text-[9px] text-[var(--foreground)]/60 font-bold uppercase tracking-widest mt-1">{t.friends.revenue.toUpperCase()}_BP</span>
+                    </div>
+                </div>
+
+                <div className="flex flex-col gap-6">
+                    <h3 className="text-[var(--accent)] font-black uppercase text-[10px] tracking-[0.3em] px-1">{t.leaderboard.player.toUpperCase()}</h3>
+
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="steam-emboss p-4 flex flex-col gap-1 items-center justify-center">
+                            <span className="text-[9px] text-[var(--foreground)]/60 font-bold uppercase tracking-widest text-center">{t.friends.commission.toUpperCase()}</span>
+                            <span className="text-xl font-black text-[var(--foreground)]">10%</span>
                         </div>
-                        <span className="text-xl font-black text-white">{referralData?.referralEarnings || 0} BP</span>
+                        <div className="steam-emboss p-4 flex flex-col gap-1 items-center justify-center">
+                            <span className="text-[9px] text-[var(--foreground)]/60 font-bold uppercase tracking-widest text-center">{t.friends.recruited.toUpperCase()}</span>
+                            <span className="text-xl font-black text-[var(--foreground)]">{referralData?.referralCount || 0}</span>
+                        </div>
                     </div>
                 </div>
 
                 {/* Friends List */}
                 <div className="flex flex-col gap-4">
-                    <h3 className="text-gray-500 font-black uppercase text-[10px] tracking-[0.3em] px-1">Твои партнеры</h3>
+                    <h3 className="text-[var(--accent)] font-black uppercase text-[10px] tracking-[0.3em] px-1">{t.friends.referral_link.toUpperCase()}</h3>
 
                     {isLoading ? (
                         <div className="flex flex-col gap-2 animate-pulse">
                             {[1, 2, 3].map(i => <div key={i} className="h-16 bg-white/5 rounded-xl" />)}
                         </div>
                     ) : (!referralData || referralData.referrals?.length === 0 ? (
-                        <div className="dota-card p-12 flex flex-col items-center justify-center text-center gap-4 bg-transparent border-dashed">
-                            <UserPlus size={32} className="text-gray-800" />
-                            <p className="text-[10px] text-gray-600 font-bold uppercase">У тебя пока нет партнеров.<br />Пригласи первого друга!</p>
+                        <div className="steam-bevel p-8 flex flex-col items-center justify-center text-center gap-4 bg-black/10">
+                            <UserPlus size={32} className="text-[var(--foreground)]/10" />
+                            <p className="text-[9px] text-[var(--foreground)]/40 font-black uppercase tracking-widest">{t.friends.no_friends.toUpperCase()}</p>
                         </div>
                     ) : (
                         <div className="flex flex-col gap-2">
                             {referralData.referrals.map((ref: any, idx: number) => (
                                 <motion.div
-                                    initial={{ opacity: 0, x: -10 }}
+                                    initial={{ opacity: 0, x: -5 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: idx * 0.05 }}
                                     key={ref.id}
-                                    className="dota-card p-4 flex items-center justify-between"
+                                    className="steam-bevel p-3 flex items-center justify-between"
                                 >
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-500 font-black text-[10px]">
+                                        <div className="w-8 h-8 steam-emboss flex items-center justify-center text-[var(--foreground)]/20 font-black text-[10px]">
                                             {ref.username?.[0]?.toUpperCase() || '?'}
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="text-white font-bold text-xs">{ref.username || 'Игрок'}</span>
-                                            <span className="text-[8px] text-gray-600 font-bold uppercase">Вступил {new Date(ref.joinedAt).toLocaleDateString()}</span>
+                                            <span className="text-[var(--foreground)] font-black text-[11px] uppercase tracking-tighter">{ref.username || t.leaderboard.player}</span>
+                                            <span className="text-[7px] text-[var(--foreground)]/30 font-black uppercase tracking-widest">{new Date(ref.joinedAt).toLocaleDateString()}</span>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col items-end">
-                                        <span className="text-yellow-500 font-black text-[10px]">+{ref.contribution} BP</span>
-                                        <span className="text-[7px] text-gray-600 font-black uppercase tracking-tighter">Комиссия</span>
+                                    <div className="text-right">
+                                        <p className="text-[var(--accent)] font-black text-xs leading-none">+{ref.contribution} {t.common.bp}</p>
+                                        <p className="text-[7px] text-[var(--foreground)]/30 font-black uppercase tracking-widest mt-1">{t.friends.commission.toUpperCase()}</p>
                                     </div>
                                 </motion.div>
                             ))}

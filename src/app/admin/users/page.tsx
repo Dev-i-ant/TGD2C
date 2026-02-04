@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import PageHeader from '@/components/ui/PageHeader';
 import { motion } from 'framer-motion';
-import { Users, Search, Edit2, Wallet, Package, History } from 'lucide-react';
-import { getAllUsers, updateUserPoints } from './actions';
+import { Users, Search, Edit2, Wallet, Package, History, Copy, Check, BadgePlus } from 'lucide-react';
+import { getAllUsers, updateUserPoints, updateUserTitles } from './actions';
 
 export default function AdminUsersPage() {
     const [users, setUsers] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [copiedId, setCopiedId] = useState<string | null>(null);
 
     useEffect(() => {
         loadUsers();
@@ -41,27 +42,45 @@ export default function AdminUsersPage() {
         }
     }
 
+    async function handleUpdateTitles(userId: string, currentTitles: string = '') {
+        const newTitles = prompt('Введите звания через запятую (напр. Pro Player, Collector):', currentTitles || '');
+        if (newTitles === null) return;
+
+        const result = await updateUserTitles(userId, newTitles);
+        if (result.success) {
+            loadUsers();
+        } else {
+            alert(result.error);
+        }
+    }
+
+    const handleCopyId = (id: string) => {
+        navigator.clipboard.writeText(id);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2000);
+    };
+
     return (
         <div className="pb-24">
             <PageHeader title="Пользователи" backPath="/admin" />
 
             <div className="p-6 flex flex-col gap-6">
                 {/* Search Bar */}
-                <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
+                <div className="relative steam-emboss bg-black/10">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--foreground)]/20" size={16} />
                     <input
                         type="text"
-                        placeholder="Поиск по ID или Username..."
+                        placeholder="FILTER_BY_ID_OR_USERNAME..."
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white focus:border-red-500 outline-none transition-all placeholder:text-gray-600"
+                        className="w-full bg-transparent py-3 pl-10 pr-4 text-[var(--foreground)] text-[11px] font-black uppercase tracking-widest focus:outline-none placeholder:text-[var(--foreground)]/10"
                     />
                 </div>
 
                 {isLoading ? (
-                    <div className="flex flex-col gap-3 animate-pulse">
-                        {[1, 2, 3, 4].map(i => (
-                            <div key={i} className="h-20 bg-white/5 rounded-xl" />
+                    <div className="flex flex-col gap-2 animate-pulse">
+                        {[1, 2, 3, 4, 5].map(i => (
+                            <div key={i} className="h-16 steam-bevel" />
                         ))}
                     </div>
                 ) : filteredUsers.length === 0 ? (
@@ -75,36 +94,60 @@ export default function AdminUsersPage() {
                             <motion.div
                                 layout
                                 key={user.id}
-                                className="dota-card p-4 flex items-center justify-between"
+                                className="steam-bevel p-2 flex items-center justify-between"
                             >
                                 <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400">
-                                        <Users size={20} />
+                                    <div className="w-10 h-10 steam-emboss flex items-center justify-center text-[var(--foreground)]/20">
+                                        <Users size={16} />
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="text-white font-bold text-sm">
-                                            {user.username || 'Без имени'}
-                                            <span className="ml-2 text-[10px] text-gray-600 font-mono">#{user.telegramId}</span>
-                                        </span>
-                                        <div className="flex items-center gap-3 mt-1">
-                                            <span className="text-[9px] text-yellow-500/80 font-black flex items-center gap-1 uppercase">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[var(--foreground)] font-black text-[11px] uppercase tracking-tighter">
+                                                {user.username || 'NO_IDENTIFIER'}
+                                            </span>
+                                            <button
+                                                onClick={() => handleCopyId(user.telegramId)}
+                                                className="flex items-center gap-1 text-[8px] text-[var(--foreground)]/30 font-mono hover:text-[var(--foreground)] transition-none uppercase"
+                                            >
+                                                #{user.telegramId}
+                                                {copiedId === user.telegramId ? <Check size={10} className="text-green-500" /> : <Copy size={10} />}
+                                            </button>
+                                        </div>
+                                        {user.titles && (
+                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                {user.titles.split(',').map((t: string, i: number) => (
+                                                    <span key={i} className="text-[7px] steam-emboss bg-black/5 text-[var(--foreground)]/40 px-1 border-0 uppercase font-black tracking-tighter">
+                                                        {t.trim()}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <div className="flex items-center gap-3 mt-1.5">
+                                            <span className="text-[9px] text-[var(--accent)] font-black flex items-center gap-1 uppercase tracking-widest">
                                                 <Wallet size={10} /> {user.points} BP
                                             </span>
-                                            <span className="text-[9px] text-blue-500/80 font-black flex items-center gap-1 uppercase">
+                                            <span className="text-[9px] text-[var(--foreground)]/40 font-black flex items-center gap-1 uppercase tracking-widest">
                                                 <Package size={10} /> {user._count.inventory}
-                                            </span>
-                                            <span className="text-[9px] text-gray-500 font-black flex items-center gap-1 uppercase">
-                                                <History size={10} /> {user._count.transactions}
                                             </span>
                                         </div>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => handleUpdatePoints(user.id, user.points)}
-                                    className="p-2 text-gray-500 hover:text-white transition-colors"
-                                >
-                                    <Edit2 size={18} />
-                                </button>
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        onClick={() => handleUpdateTitles(user.id, user.titles)}
+                                        className="w-8 h-8 steam-bevel flex items-center justify-center text-[var(--foreground)]/40 hover:text-[var(--accent)] active:translate-y-[1px] transition-none"
+                                        title="EDIT_TITLES"
+                                    >
+                                        <BadgePlus size={14} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleUpdatePoints(user.id, user.points)}
+                                        className="w-8 h-8 steam-bevel flex items-center justify-center text-[var(--foreground)]/40 hover:text-[var(--foreground)] active:translate-y-[1px] transition-none"
+                                        title="EDIT_BALANCE"
+                                    >
+                                        <Edit2 size={14} />
+                                    </button>
+                                </div>
                             </motion.div>
                         ))}
                     </div>

@@ -215,7 +215,11 @@ export async function openCaseAction(telegramId: string, caseId: string) {
 
         const caseData = await prisma.case.findUnique({
             where: { id: caseId },
-            include: { rewards: true }
+            include: {
+                rewards: {
+                    where: { userId: null }
+                }
+            }
         });
 
         if (!caseData) return { success: false, error: 'Кейс не найден' };

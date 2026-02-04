@@ -67,7 +67,7 @@ export default function EditCasePage() {
     if (isLoading) {
         return (
             <div className="pb-24">
-                <PageHeader title="Загрузка..." />
+                <PageHeader title="Загрузка..." backPath="/admin/cases" />
                 <div className="p-6 flex flex-col gap-6 animate-pulse">
                     <div className="h-20 bg-white/5 rounded-xl" />
                     <div className="grid grid-cols-2 gap-4">

@@ -6,7 +6,10 @@ import { motion } from 'framer-motion';
 import { Trophy, Medal, Crown, User as UserIcon, Package } from 'lucide-react';
 import { getLeaderboard } from '../actions/user';
 
+import { useTranslation } from '@/components/LanguageProvider';
+
 export default function LeaderboardPage() {
+    const { t } = useTranslation();
     const [leaderboard, setLeaderboard] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -29,11 +32,10 @@ export default function LeaderboardPage() {
     if (isLoading) {
         return (
             <div className="pb-24">
-                <PageHeader title="Рейтинг" />
-                <div className="p-6 flex flex-col gap-6 animate-pulse">
-                    <div className="h-64 bg-white/5 rounded-2xl" />
-                    {[1, 2, 3, 4].map(i => (
-                        <div key={i} className="h-16 bg-white/5 rounded-xl" />
+                <PageHeader title={t.nav.leaderboard} />
+                <div className="p-6 flex flex-col gap-4 animate-pulse">
+                    {[1, 2, 3, 4, 5, 6].map(i => (
+                        <div key={i} className="h-16 steam-bevel" />
                     ))}
                 </div>
             </div>
@@ -45,7 +47,7 @@ export default function LeaderboardPage() {
 
     return (
         <div className="pb-24">
-            <PageHeader title="Топ игроков" />
+            <PageHeader title={t.leaderboard.title} />
 
             <div className="p-6 flex flex-col gap-8">
                 {/* Podium */}
@@ -54,22 +56,19 @@ export default function LeaderboardPage() {
                         {/* 2nd Place */}
                         {topThree[1] && (
                             <motion.div
-                                initial={{ opacity: 0, y: 20 }}
+                                initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.1 }}
                                 className="flex flex-col items-center gap-2 w-24"
                             >
-                                <div className="relative">
-                                    <div className="w-16 h-16 rounded-full bg-slate-400 p-1 flex items-center justify-center shadow-[0_0_15px_rgba(148,163,184,0.3)]">
-                                        <div className="w-full h-full rounded-full bg-[#1c242d] flex items-center justify-center overflow-hidden">
-                                            <UserIcon size={32} className="text-slate-400" />
-                                        </div>
+                                <div className="relative steam-emboss p-1">
+                                    <div className="w-14 h-14 bg-slate-400/20 flex items-center justify-center">
+                                        <UserIcon size={24} className="text-slate-400" />
                                     </div>
-                                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-slate-400 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-full">2</div>
+                                    <div className="absolute -top-2 -left-2 steam-bevel bg-slate-400 text-slate-900 text-[9px] font-black px-1.5 py-0.5">2ND</div>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-[10px] font-bold text-white truncate w-20">{topThree[1].username || 'Игрок'}</p>
-                                    <p className="text-[10px] text-slate-400 font-black">{topThree[1].points} BP</p>
+                                    <p className="text-[9px] font-bold text-[var(--foreground)] uppercase truncate w-20 tracking-tighter">{topThree[1].username || t.leaderboard.player}</p>
+                                    <p className="text-[9px] text-[var(--accent)] font-black">{topThree[1].points} {t.common.bp}</p>
                                 </div>
                             </motion.div>
                         )}
@@ -77,22 +76,19 @@ export default function LeaderboardPage() {
                         {/* 1st Place */}
                         {topThree[0] && (
                             <motion.div
-                                initial={{ opacity: 0, y: 20, scale: 0.8 }}
-                                animate={{ opacity: 1, y: 0, scale: 1.1 }}
-                                className="flex flex-col items-center gap-2 w-28 z-10 -translate-y-4"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex flex-col items-center gap-2 w-28 z-10"
                             >
-                                <div className="relative">
-                                    <Crown size={24} className="text-yellow-500 absolute -top-6 left-1/2 -translate-x-1/2 drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]" />
-                                    <div className="w-20 h-20 rounded-full bg-yellow-500 p-1.5 flex items-center justify-center shadow-[0_0_25px_rgba(234,179,8,0.4)]">
-                                        <div className="w-full h-full rounded-full bg-[#1c242d] flex items-center justify-center overflow-hidden">
-                                            <UserIcon size={40} className="text-yellow-500" />
-                                        </div>
+                                <div className="relative steam-emboss p-1.5 border-[var(--accent)]/50 border-2">
+                                    <div className="w-18 h-18 bg-[var(--accent)]/20 flex items-center justify-center">
+                                        <UserIcon size={32} className="text-[var(--accent)]" />
                                     </div>
-                                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-yellow-500 text-yellow-900 text-[10px] font-black px-2 py-0.5 rounded-full">1</div>
+                                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 steam-bevel bg-[var(--accent)] text-black text-[10px] font-black px-2 py-0.5">{t.leaderboard.champion.toUpperCase()}</div>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-xs font-bold text-white truncate w-24">{topThree[0].username || 'Игрок'}</p>
-                                    <p className="text-xs text-yellow-500 font-black">{topThree[0].points} BP</p>
+                                    <p className="text-[10px] font-bold text-[var(--foreground)] uppercase truncate w-24 tracking-widest">{topThree[0].username || t.leaderboard.player}</p>
+                                    <p className="text-xs text-[var(--accent)] font-black">{topThree[0].points} {t.common.bp}</p>
                                 </div>
                             </motion.div>
                         )}
@@ -100,22 +96,19 @@ export default function LeaderboardPage() {
                         {/* 3rd Place */}
                         {topThree[2] && (
                             <motion.div
-                                initial={{ opacity: 0, y: 20 }}
+                                initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.2 }}
                                 className="flex flex-col items-center gap-2 w-24"
                             >
-                                <div className="relative">
-                                    <div className="w-16 h-16 rounded-full bg-orange-700 p-1 flex items-center justify-center shadow-[0_0_15px_rgba(194,65,12,0.3)]">
-                                        <div className="w-full h-full rounded-full bg-[#1c242d] flex items-center justify-center overflow-hidden">
-                                            <UserIcon size={32} className="text-orange-700" />
-                                        </div>
+                                <div className="relative steam-emboss p-1">
+                                    <div className="w-14 h-14 bg-orange-700/20 flex items-center justify-center">
+                                        <UserIcon size={24} className="text-orange-700" />
                                     </div>
-                                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-orange-700 text-orange-100 text-[10px] font-black px-2 py-0.5 rounded-full">3</div>
+                                    <div className="absolute -top-2 -right-2 steam-bevel bg-orange-700 text-orange-100 text-[9px] font-black px-1.5 py-0.5">3RD</div>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-[10px] font-bold text-white truncate w-20">{topThree[2].username || 'Игрок'}</p>
-                                    <p className="text-[10px] text-orange-700 font-black">{topThree[2].points} BP</p>
+                                    <p className="text-[9px] font-bold text-[var(--foreground)] uppercase truncate w-20 tracking-tighter">{topThree[2].username || t.leaderboard.player}</p>
+                                    <p className="text-[9px] text-[var(--accent)] font-black">{topThree[2].points} {t.common.bp}</p>
                                 </div>
                             </motion.div>
                         )}
@@ -128,32 +121,34 @@ export default function LeaderboardPage() {
                         const isMe = user.telegramId === currentUserId;
                         return (
                             <motion.div
-                                initial={{ opacity: 0, x: -20 }}
+                                initial={{ opacity: 0, x: -5 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: 0.05 * index }}
                                 key={user.id}
-                                className={`dota-card p-4 flex items-center gap-4 transition-colors ${isMe ? 'border-l-4 border-l-[var(--accent)] bg-[var(--accent)]/5' : 'bg-white/[0.02]'}`}
+                                className={`steam-bevel p-2 flex items-center gap-4 transition-none ${isMe ? 'border-2 border-[var(--accent)] bg-[var(--accent)]/5' : ''}`}
                             >
-                                <span className={`text-sm font-black w-6 text-center ${index < 7 ? 'text-[var(--primary)]' : 'text-gray-600'}`}>
+                                <span className={`text-[10px] font-black w-6 text-center text-[var(--foreground)]/40`}>
                                     {index + 4}
                                 </span>
-                                <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center shrink-0">
-                                    <UserIcon size={20} className="text-gray-500" />
+                                <div className="w-10 h-10 steam-emboss p-1 shrink-0">
+                                    <div className="w-full h-full bg-black/20 flex items-center justify-center">
+                                        <UserIcon size={16} className="text-[var(--foreground)]/20" />
+                                    </div>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-bold text-white truncate flex items-center gap-2">
-                                        {user.username || 'Игрок'}
-                                        {isMe && <span className="text-[8px] bg-[var(--accent)] text-black px-1 rounded font-black uppercase">Вы</span>}
+                                    <p className="font-bold text-[var(--foreground)] truncate flex items-center gap-2 uppercase text-[11px] tracking-tighter">
+                                        {user.username || t.leaderboard.player}
+                                        {isMe && <span className="text-[8px] bg-[var(--accent)] text-black px-1 font-black uppercase">{t.leaderboard.you}</span>}
                                     </p>
                                     <div className="flex items-center gap-3 mt-0.5">
-                                        <span className="text-[10px] text-gray-500 font-bold flex items-center gap-1 uppercase">
-                                            <Package size={10} /> {user._count.inventory} предметов
+                                        <span className="text-[9px] text-[var(--foreground)]/40 font-bold flex items-center gap-1 uppercase tracking-widest">
+                                            {user._count.inventory} {t.leaderboard.items.toUpperCase()}
                                         </span>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className="font-black text-[var(--accent)]">{user.points}</p>
-                                    <p className="text-[8px] text-gray-600 font-bold uppercase tracking-widest">Balance</p>
+                                    <p className="font-black text-[var(--accent)] text-xs">{user.points}</p>
+                                    <p className="text-[7px] text-[var(--foreground)]/30 font-bold uppercase tracking-widest leading-none">{t.leaderboard.balance.toUpperCase()}</p>
                                 </div>
                             </motion.div>
                         );

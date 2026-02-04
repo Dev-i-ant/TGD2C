@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import PageHeader from '@/components/ui/PageHeader';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package, ExternalLink, TrendingUp, DollarSign, Trash2 } from 'lucide-react';
+import { Package, ExternalLink, TrendingUp, Wallet, Trash2 } from 'lucide-react';
 import { getUserData, sellItemAction } from '../actions/user';
+import { useTranslation } from '@/components/LanguageProvider';
 
 const RARITY_COLORS: Record<string, string> = {
     'COMMON': 'bg-gray-500',
@@ -17,6 +18,7 @@ const RARITY_COLORS: Record<string, string> = {
 };
 
 export default function InventoryPage() {
+    const { t } = useTranslation();
     const [items, setItems] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -56,9 +58,9 @@ export default function InventoryPage() {
     if (isLoading) {
         return (
             <div className="pb-24">
-                <PageHeader title="Инвентарь" />
-                <div className="p-6 grid grid-cols-2 gap-4 animate-pulse">
-                    {[1, 2, 3, 4].map(i => <div key={i} className="h-40 bg-white/5 rounded-2xl" />)}
+                <PageHeader title={t.inventory.title} />
+                <div className="p-6 grid grid-cols-2 gap-2 animate-pulse">
+                    {[1, 2, 3, 4].map(i => <div key={i} className="h-40 steam-bevel" />)}
                 </div>
             </div>
         );
@@ -66,7 +68,7 @@ export default function InventoryPage() {
 
     return (
         <div className="pb-24">
-            <PageHeader title="Инвентарь" />
+            <PageHeader title={t.inventory.title} />
 
             <div className="p-6">
                 {items.length > 0 ? (
@@ -74,21 +76,21 @@ export default function InventoryPage() {
                         {items.map((item, index) => (
                             <motion.div
                                 key={item.id}
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: index * 0.03, duration: 0.2 }}
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.03 }}
                                 onClick={() => setSelectedItem(item)}
-                                className="dota-card p-3 flex flex-col gap-3 bg-white/[0.02] cursor-pointer active:scale-95 transition-transform group relative overflow-hidden"
+                                className="steam-bevel p-2 flex flex-col gap-2 cursor-pointer active:translate-y-[1px] transition-none group relative overflow-hidden"
                             >
-                                <div className={`w-full aspect-square rounded-lg ${RARITY_COLORS[item.rarity] || 'bg-gray-500'}/20 flex items-center justify-center relative`}>
-                                    <Package size={48} className="text-white/20 group-hover:text-white/40 transition-colors" />
+                                <div className={`w-full aspect-square steam-emboss flex items-center justify-center relative`}>
+                                    <Package size={32} className="text-[var(--accent)]/10" />
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black text-white leading-tight uppercase truncate">{item.name}</p>
-                                    <p className={`text-[8px] font-bold ${(RARITY_COLORS[item.rarity] || 'bg-gray-500').replace('bg-', 'text-')} uppercase`}>{item.rarity}</p>
+                                    <p className="steam-header-text text-[var(--foreground)] leading-tight truncate">{item.name}</p>
+                                    <p className={`steam-header-text text-[7px] ${(RARITY_COLORS[item.rarity] || 'bg-gray-500').replace('bg-', 'text-')}`}>{item.rarity}</p>
                                 </div>
-                                <div className="flex items-center justify-between mt-auto pt-2 border-t border-white/5">
-                                    <span className="text-[10px] font-black text-red-500">{Math.floor(item.weight / 2) || 10} BP</span>
+                                <div className="flex items-center justify-between mt-auto pt-1 border-t border-[var(--border)]">
+                                    <span className="text-[9px] font-black text-[var(--accent)]">{Math.floor(item.weight / 2) || 10} {t.common.bp}</span>
                                 </div>
                             </motion.div>
                         ))}
@@ -97,8 +99,8 @@ export default function InventoryPage() {
                     <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
                         <Package className="text-gray-600" size={64} />
                         <div>
-                            <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Инвентрарь пуст</p>
-                            <p className="text-[10px] text-gray-700 uppercase mt-1">Открой свой первый кейс!</p>
+                            <p className="steam-header-text text-[var(--foreground)]/60 text-xs text-center w-full">{t.inventory.empty_title}</p>
+                            <p className="steam-header-text text-[10px] text-[var(--foreground)]/20 mt-1 text-center w-full">{t.inventory.empty_desc}</p>
                         </div>
                     </div>
                 )}
@@ -118,57 +120,44 @@ export default function InventoryPage() {
                             initial={{ y: "100%" }}
                             animate={{ y: 0 }}
                             exit={{ y: "100%" }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                            className="w-full max-w-md bg-[#151a1f] border-t border-white/10 rounded-t-[2rem] p-8 flex flex-col gap-6"
+                            transition={{ duration: 0.2 }}
+                            className="w-full max-w-sm steam-bevel p-6 flex flex-col gap-4 mx-4 mb-4"
                             onClick={e => e.stopPropagation()}
                         >
-                            <div className="flex items-center gap-6">
-                                <div className={`w-24 h-24 rounded-2xl ${RARITY_COLORS[selectedItem.rarity] || 'bg-gray-500'}/20 border border-white/5 flex items-center justify-center shadow-lg`}>
-                                    <Package size={48} className="text-white/40" />
+                            <div className="flex items-center gap-4">
+                                <div className="w-20 h-20 steam-emboss flex items-center justify-center">
+                                    <Package size={40} className="text-[var(--accent)]/30" />
                                 </div>
                                 <div className="flex-1">
-                                    <p className={`text-xs font-black ${(RARITY_COLORS[selectedItem.rarity] || 'bg-gray-500').replace('bg-', 'text-')} uppercase tracking-widest mb-1`}>{selectedItem.rarity}</p>
-                                    <h2 className="text-2xl font-black text-white uppercase tracking-tight">{selectedItem.name}</h2>
-                                    <div className="flex items-center gap-2 mt-2">
-                                        <DollarSign size={14} className="text-red-500" />
-                                        <span className="text-red-500 font-black text-lg">{Math.floor(selectedItem.weight / 2) || 10} BP</span>
+                                    <p className={`steam-header-text text-[9px] ${(RARITY_COLORS[selectedItem.rarity] || 'bg-gray-500').replace('bg-', 'text-')} mb-1`}>{selectedItem.rarity}</p>
+                                    <h2 className="steam-header-text text-sm text-[var(--foreground)]">{selectedItem.name}</h2>
+                                    <div className="flex items-center gap-2 mt-4">
+                                        <Wallet size={12} className="text-[var(--accent)]" />
+                                        <span className="text-[var(--accent)] font-black text-sm">{Math.floor(selectedItem.weight / 2) || 10} {t.common.bp}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 gap-3 mt-4">
+                            <div className="grid grid-cols-1 gap-2 mt-4">
                                 <button
                                     onClick={() => handleSell(selectedItem.id)}
                                     disabled={isSelling}
-                                    className="w-full h-14 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl flex items-center justify-between px-6 group transition-all"
+                                    className="steam-bevel h-12 bg-[var(--background)] text-green-500 text-[11px] font-black uppercase tracking-widest active:translate-y-[1px] transition-none disabled:opacity-50"
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <TrendingUp size={20} className="text-green-500" />
-                                        <span className="font-bold text-white uppercase text-sm">Продать</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        {isSelling ? (
-                                            <div className="w-5 h-5 border-2 border-green-500/20 border-t-green-500 rounded-full animate-spin" />
-                                        ) : (
-                                            <span className="text-green-500 font-black">+{Math.floor(selectedItem.weight / 2) || 10} BP</span>
-                                        )}
-                                    </div>
+                                    {isSelling ? t.common.processing.toUpperCase() : `${t.inventory.sell_item.toUpperCase()} (+${Math.floor(selectedItem.weight / 2) || 10} ${t.common.bp})`}
                                 </button>
-
                                 <button
-                                    className="w-full h-14 bg-red-600 hover:bg-red-700 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-95 mt-2"
+                                    className="steam-bevel h-12 bg-[var(--background)] text-[var(--foreground)] text-[11px] font-black uppercase tracking-widest active:translate-y-[1px] transition-none"
                                 >
-                                    <ExternalLink size={20} className="text-white" />
-                                    <span className="font-black text-white uppercase text-sm">Вывести в Steam</span>
+                                    {t.inventory.withdraw.toUpperCase()}
+                                </button>
+                                <button
+                                    onClick={() => setSelectedItem(null)}
+                                    className="steam-bevel h-10 bg-[var(--background)] text-[var(--foreground)]/60 text-[10px] font-black uppercase tracking-widest active:translate-y-[1px] transition-none"
+                                >
+                                    {t.common.close.toUpperCase()}
                                 </button>
                             </div>
-
-                            <button
-                                onClick={() => setSelectedItem(null)}
-                                className="w-full py-4 text-gray-500 font-bold uppercase text-xs tracking-widest hover:text-white transition-colors"
-                            >
-                                Отмена
-                            </button>
                         </motion.div>
                     </motion.div>
                 )}

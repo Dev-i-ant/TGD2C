@@ -97,7 +97,10 @@ export async function deleteCase(id: string) {
 export async function getCaseRewards(caseId: string) {
     try {
         return await prisma.reward.findMany({
-            where: { caseId },
+            where: {
+                caseId,
+                userId: null // Only show templates, not user rewards
+            },
             orderBy: { rarity: 'asc' },
         });
     } catch (error) {

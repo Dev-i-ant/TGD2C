@@ -1,19 +1,43 @@
 @import "tailwindcss";
 
 :root {
-  /* Classic (Steam 2003) - Default */
-  --background: #1b1e1b;
-  --foreground: #dbe3ce;
-  --primary: #4b5c40;
-  --primary-foreground: #ffffff;
-  --secondary: #282e26;
-  --accent: #cba500;
-  --card: #282e26;
-  --border: #3e4637;
+  /* Theme Variables - Default: Steam 2003 */
+  --background: #4b563f;
+  --foreground: #eff6ee;
+  --primary: #4e5844;
+  --primary-foreground: #eff6ee;
+  --secondary: #3d4535;
+  --accent: #968732;
+  --card: #4b563f;
+  --border: #3d4535;
+  --border-light: #6d7a5b;
+  --border-dark: #2d3529;
+  --text-muted: #8a967a;
+  --btn-accent: var(--accent);
+
+  /* Shape & Text Variables */
+  --font-main: Tahoma, Arial, sans-serif;
+  --card-radius: 0px;
+  --button-radius: 0px;
+  --text-transform: uppercase;
+  --font-weight-header: 900;
+
+  /* 3D Border Variables */
+  --steam-bt: 1px solid var(--border-light);
+  --steam-bl: 1px solid var(--border-light);
+  --steam-bb: 2px solid var(--border-dark);
+  --steam-br: 2px solid var(--border-dark);
+
+  --steam-et: 2px solid var(--border-dark);
+  --steam-el: 2px solid var(--border-dark);
+  --steam-eb: 1px solid var(--border-light);
+  --steam-er: 1px solid var(--border-light);
+
+  --btn-active-translate: translateY(1px);
 }
 
 [data-theme='dark'] {
-  /* Dark (Original) */
+  /* Original Dota Style */
   --background: #0b0e11;
   --foreground: #e1e1e1;
   --primary: #c23c2a;
@@ -22,6 +46,28 @@
   --accent: #c23c2a;
   --card: #151a1f;
   --border: #2a343d;
+  --text-muted: #666666;
+  --btn-accent: #c23c2a;
+
+  /* Reset Shapes & Text */
+  --font-main: "Inter", sans-serif;
+  --card-radius: 12px;
+  --button-radius: 8px;
+  --text-transform: none;
+  --font-weight-header: 700;
+
+  /* Flat Borders in Dark Mode */
+  --steam-bt: 1px solid var(--border);
+  --steam-bl: 1px solid var(--border);
+  --steam-bb: 1px solid var(--border);
+  --steam-br: 1px solid var(--border);
+
+  --steam-et: 0px;
+  --steam-el: 0px;
+  --steam-eb: 0px;
+  --steam-er: 0px;
+
+  --btn-active-translate: scale(0.98);
 }
 
 html,
@@ -33,18 +79,61 @@ body {
   overflow-x: hidden;
   touch-action: manipulation;
   -webkit-text-size-adjust: 100%;
+  font-family: var(--font-main);
 }
 
 @layer components {
-  .dota-gradient {
-    @apply bg-gradient-to-br from-[var(--secondary)] to-[var(--background)];
+
+  /* Classic Bevel (Outset) - for windows and buttons */
+  .steam-bevel,
+  .dota-card,
+  .dota-button {
+    background-color: var(--background);
+    border-top: var(--steam-bt);
+    border-left: var(--steam-bl);
+    border-bottom: var(--steam-bb);
+    border-right: var(--steam-br);
+    border-radius: var(--card-radius);
+  }
+
+  /* Classic Emboss (Inset) - for inputs and inner containers */
+  .steam-emboss,
+  .steam-content {
+    background-color: var(--secondary);
+    border-top: var(--steam-et);
+    border-left: var(--steam-el);
+    border-bottom: var(--steam-eb);
+    border-right: var(--steam-er);
+    border-radius: var(--card-radius);
   }
 
   .dota-card {
-    @apply bg-[var(--card)] border border-[var(--border)] rounded-sm overflow-hidden shadow-lg;
+    @apply p-1;
   }
 
   .dota-button {
-    @apply bg-[var(--primary)] hover:opacity-90 text-[var(--primary-foreground)] px-6 py-3 rounded-sm font-bold uppercase tracking-widest transition-all duration-200 border border-[var(--border)] active:scale-95 shadow-md;
+    @apply px-6 py-2 transition-all duration-150;
+    color: var(--foreground);
+    background-color: var(--btn-accent);
+    font-size: var(--font-size-button, inherit);
+    font-weight: bold;
+    text-transform: var(--text-transform);
+    border-radius: var(--button-radius);
+  }
+
+  .dota-button:active {
+    transform: var(--btn-active-translate);
+  }
+
+  /* Inner content container */
+  .steam-content {
+    @apply p-4;
+  }
+
+  .steam-header-text {
+    @apply uppercase tracking-widest font-black;
+    font-size: 11px;
+    font-weight: var(--font-weight-header);
+    text-transform: var(--text-transform);
   }
 }

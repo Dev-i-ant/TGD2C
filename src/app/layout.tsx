@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 
 import BottomNav from "@/components/layout/BottomNav";
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { LanguageProvider } from '@/components/LanguageProvider';
 import TelegramProvider from "@/components/TelegramProvider";
 
 export default function RootLayout({
@@ -30,12 +31,14 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} min-h-screen antialiased`}>
         <ThemeProvider>
-          <TelegramProvider>
-            <main className="max-w-md mx-auto min-h-screen relative pb-28">
-              {children}
-              <BottomNav />
-            </main>
-          </TelegramProvider>
+          <LanguageProvider>
+            <TelegramProvider>
+              <main className="max-w-md mx-auto min-h-screen relative pb-28">
+                {children}
+                <BottomNav />
+              </main>
+            </TelegramProvider>
+          </LanguageProvider>
         </ThemeProvider>
       </body>
     </html>

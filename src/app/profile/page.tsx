@@ -3,19 +3,21 @@
 import { useEffect, useState } from 'react';
 import PageHeader from '@/components/ui/PageHeader';
 import { motion } from 'framer-motion';
-import { Wallet, Package, Trophy, Settings, Star, Palette, Sparkles, Share2, Check } from 'lucide-react';
+import { Wallet, Package, Trophy, Settings, Star, Palette, Sparkles, Share2, Check, History as HistoryIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getUserData } from '../actions/user';
 import { useTheme } from '@/components/ThemeProvider';
+import { useTranslation } from '@/components/LanguageProvider';
 import { RARITY_TEXT_COLORS } from '@/lib/constants';
 
 export default function ProfilePage() {
     const router = useRouter();
     const { theme, setTheme } = useTheme();
+    const { t, language } = useTranslation();
     const [userData, setUserData] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-    const [fullName, setFullName] = useState('Игрок');
+    const [fullName, setFullName] = useState(t.common.loading);
     const [tgHandle, setTgHandle] = useState<string | null>(null);
 
     useEffect(() => {
@@ -39,12 +41,12 @@ export default function ProfilePage() {
     if (isLoading) {
         return (
             <div className="pb-24">
-                <PageHeader title="Профиль" />
+                <PageHeader title={t.profile.title} />
                 <div className="p-6 flex flex-col gap-6 animate-pulse">
-                    <div className="h-48 bg-white/5 rounded-2xl" />
+                    <div className="h-48 steam-bevel" />
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="h-24 bg-white/5 rounded-2xl" />
-                        <div className="h-24 bg-white/5 rounded-2xl" />
+                        <div className="h-24 steam-bevel" />
+                        <div className="h-24 steam-bevel" />
                     </div>
                 </div>
             </div>
@@ -52,88 +54,98 @@ export default function ProfilePage() {
     }
 
     return (
-        <div className="pb-24">
-            <PageHeader title="Профиль" />
-
+        <div className="pb-24 pt-[calc(5rem+env(safe-area-inset-top))]">
             <div className="p-6 flex flex-col gap-6">
                 {/* User Card */}
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="dota-card p-6 flex flex-col items-center text-center gap-4 border-t-2 border-t-[var(--primary)]"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="steam-bevel p-6 flex flex-col items-center text-center gap-4"
                 >
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-[var(--primary)] to-[var(--secondary)] p-1 flex items-center justify-center shadow-[0_0_20px_rgba(var(--primary),0.3)]">
-                        <div className="w-full h-full rounded-full bg-[#151a1f] flex items-center justify-center overflow-hidden">
+                    <div className="w-24 h-24 steam-emboss p-1 flex items-center justify-center">
+                        <div className="w-full h-full bg-[#151a1f] flex items-center justify-center overflow-hidden">
                             {photoUrl ? (
-                                <img src={photoUrl} alt={fullName} className="w-full h-full object-cover" />
+                                <img src={photoUrl} alt={fullName} className="w-full h-full object-cover grayscale-[0.2]" />
                             ) : (
-                                <Trophy size={48} className="text-[var(--primary)]" />
+                                <Trophy size={48} className="text-[var(--accent)]" />
                             )}
                         </div>
                     </div>
                     <div>
-                        <h2 className="text-2xl font-black text-white">{fullName}</h2>
+                        <h2 className="text-2xl font-black text-[var(--foreground)]">{fullName}</h2>
                         {(tgHandle || (userData?.username && userData.username !== '')) && (
-                            <p className="text-gray-400 text-sm">@{tgHandle || userData?.username}</p>
+                            <p className="text-[var(--foreground)]/40 text-sm">@{tgHandle || userData?.username}</p>
                         )}
-                        <p className="text-[10px] text-gray-500 font-bold uppercase mt-1 tracking-widest opacity-50">Dota 2 Collector</p>
+                        <p className="steam-header-text mt-1 opacity-50">{t.profile.collector}</p>
                     </div>
-                    <div className="flex gap-2">
-                        <span className="bg-[var(--primary)]/10 text-[var(--primary)] text-[10px] font-black px-3 py-1 rounded-full border border-[var(--primary)]/20 uppercase">Pro Player</span>
-                        <span className="bg-blue-600/10 text-blue-500 text-[10px] font-black px-3 py-1 rounded-full border border-blue-500/20 uppercase">Collector</span>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                        {userData?.titles ? (
+                            userData.titles.split(',').map((title: string, i: number) => (
+                                <span
+                                    key={i}
+                                    className="steam-emboss text-[var(--foreground)] text-[9px] font-black px-2 py-1 uppercase tracking-tight"
+                                >
+                                    {title.trim()}
+                                </span>
+                            ))
+                        ) : (
+                            <>
+                                <span className="steam-emboss text-[var(--foreground)] text-[9px] font-black px-2 py-1 uppercase tracking-tight">Pro Player</span>
+                                <span className="steam-emboss border-[var(--accent)]/50 text-[var(--accent)] text-[9px] font-black px-2 py-1 uppercase tracking-tight">Collector</span>
+                            </>
+                        )}
                     </div>
                 </motion.div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="dota-card p-4 flex flex-col gap-1 items-center justify-center bg-[var(--background)]/30">
-                        <Wallet className="text-[var(--primary)] mb-1" size={20} />
-                        <span className="text-2xl font-black text-[var(--foreground)]">{userData?.points || 0}</span>
-                        <span className="text-[10px] text-[var(--primary)] uppercase font-bold tracking-widest">Баланс BP</span>
+                <div className="grid grid-cols-2 gap-2">
+                    <div className="steam-emboss p-4 flex flex-col gap-1 items-center justify-center">
+                        <Wallet className="text-[var(--accent)] mb-1" size={16} />
+                        <span className="text-xl font-black text-[var(--foreground)] leading-none">{userData?.points || 0}</span>
+                        <span className="steam-header-text text-[9px] text-[var(--foreground)]/60">{t.profile.balance_bp}</span>
                     </div>
                     <div
                         onClick={() => router.push('/inventory')}
-                        className="dota-card p-4 flex flex-col gap-1 items-center justify-center bg-[var(--background)]/30 cursor-pointer active:scale-95 transition-transform border-b-2 border-b-blue-600"
+                        className="steam-emboss p-4 flex flex-col gap-1 items-center justify-center cursor-pointer active:translate-y-[1px] transition-none"
                     >
-                        <Package className="text-blue-500 mb-1" size={20} />
-                        <span className="text-2xl font-black text-[var(--foreground)]">{userData?.stats?.inventoryCount || userData?.inventory?.length || 0}</span>
-                        <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Инвентарь</span>
+                        <Package className="text-[var(--accent)] mb-1" size={16} />
+                        <span className="text-xl font-black text-[var(--foreground)] leading-none">{userData?.stats?.inventoryCount || userData?.inventory?.length || 0}</span>
+                        <span className="steam-header-text text-[9px] text-[var(--foreground)]/60">{t.nav.inventory || t.profile.inventory}</span>
                     </div>
                 </div>
 
-                {/* Detailed Stats */}
-                <div className="flex flex-col gap-4">
-                    <div className="flex items-center justify-between px-1">
-                        <h3 className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-[0.2em]">Личная статистика</h3>
+                <div className="flex flex-col gap-2">
+                    <div className="steam-bevel px-3 py-1 bg-[var(--secondary)]">
+                        <h3 className="steam-header-text text-[var(--foreground)]">{t.profile.personal_stats}</h3>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="dota-card p-4 bg-white/[0.02] flex flex-col gap-1">
-                            <span className="text-[9px] text-gray-500 font-bold uppercase">Всего открыто</span>
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="steam-emboss p-4 flex flex-col gap-1">
+                            <span className="steam-header-text text-[var(--foreground)]/60">{t.profile.total_opened}</span>
                             <span className="text-lg font-black text-[var(--foreground)]">{userData?.stats?.totalOpened || 0}</span>
                         </div>
-                        <div className="dota-card p-4 bg-white/[0.02] flex flex-col gap-1 text-right">
-                            <span className="text-[9px] text-gray-500 font-bold uppercase">Заработано BP</span>
-                            <span className="text-lg font-black text-green-500/80">+{userData?.stats?.totalEarned || 0}</span>
+                        <div className="steam-emboss p-4 flex flex-col gap-1 text-right">
+                            <span className="steam-header-text text-[var(--foreground)]/60">{t.profile.earned_bp}</span>
+                            <span className="text-lg font-black text-[var(--accent)]">+{userData?.stats?.totalEarned || 0}</span>
                         </div>
                     </div>
 
                     <button
                         onClick={() => router.push('/history')}
-                        className="w-full dota-card p-4 bg-white/[0.05] flex items-center justify-between group active:scale-95 transition-transform"
+                        className="w-full steam-bevel p-3 flex items-center justify-between group active:translate-y-[1px] transition-none"
                     >
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-red-600/10 flex items-center justify-center">
-                                <Wallet size={16} className="text-red-500" />
+                            <div className="w-8 h-8 steam-emboss flex items-center justify-center">
+                                <HistoryIcon size={16} className="text-[var(--accent)]" />
                             </div>
-                            <span className="text-xs font-bold uppercase tracking-widest text-[var(--foreground)]">История транзакций</span>
+                            <span className="steam-header-text text-[var(--foreground)]">{t.common.history}</span>
                         </div>
                         <Check size={16} className="text-gray-600 group-hover:text-[var(--accent)] transition-colors" />
                     </button>
 
                     {/* Enhanced Best Drop Card - Now Historical Record */}
                     <div className="flex flex-col gap-2">
-                        <h3 className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-[0.2em] px-1">Рекордный дроп</h3>
+                        <h3 className="text-[var(--accent)] font-black uppercase text-[10px] tracking-[0.3em] px-1">{t.profile.best_drop}</h3>
                         <motion.div
                             whileHover={{ scale: 1.02 }}
                             className="dota-card p-5 bg-gradient-to-br from-[var(--accent)]/10 to-transparent relative overflow-hidden group border-t-[var(--accent)]/30 border-t-2"
@@ -155,17 +167,19 @@ export default function ProfilePage() {
 
                                 <div className="flex-1 min-w-0">
                                     <h4 className={`text-lg font-black uppercase leading-tight truncate ${RARITY_TEXT_COLORS[userData?.historicalBest?.rarity || userData?.stats?.bestInInventory?.rarity || ''] || 'text-[var(--accent)]'}`}>
-                                        {userData?.historicalBest?.name || userData?.stats?.bestInInventory?.name || 'Пока нет наград'}
+                                        {userData?.historicalBest?.name || userData?.stats?.bestInInventory?.name || t.profile.no_rewards}
                                     </h4>
-                                    <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mt-1">
-                                        {userData?.historicalBest ? 'Твой лучший результат за все время' : 'Твой лучший из текущих'}
+                                    <p className="text-[9px] text-[var(--foreground)]/40 font-bold uppercase tracking-widest mt-1">
+                                        {userData?.historicalBest ? t.profile.historical_best_desc : t.profile.current_best_desc}
                                     </p>
 
                                     {userData?.historicalBest && (
                                         <button
                                             onClick={() => {
                                                 const itemName = userData.historicalBest?.name;
-                                                const shareText = `Мой рекордный дроп: ${itemName}! 🏆`;
+                                                const shareText = language === 'ru'
+                                                    ? `Мой рекордный дроп: ${itemName}! 🏆`
+                                                    : `My record drop: ${itemName}! 🏆`;
 
                                                 try {
                                                     if (window.Telegram?.WebApp) {
@@ -180,64 +194,64 @@ export default function ProfilePage() {
                                                     console.error('Sharing failed', e);
                                                 }
                                             }}
-                                            className="mt-3 flex items-center gap-2 bg-[var(--accent)] text-black text-[9px] font-black uppercase px-3 py-1.5 rounded-full hover:opacity-80 transition-opacity active:scale-95"
+                                            className="mt-3 flex items-center gap-2 bg-[var(--accent)] text-white text-[9px] font-black uppercase px-3 py-1.5 rounded-full hover:opacity-80 transition-opacity active:scale-95"
                                         >
-                                            <Share2 size={12} /> Поделиться рекордом
+                                            <Share2 size={12} /> {t.profile.share_record}
                                         </button>
                                     )}
                                 </div>
                             </div>
                         </motion.div>
                     </div>
-                </div>
 
-                <div className="flex flex-col gap-2">
-                    <div className="dota-card p-4 flex flex-col gap-3 hover:bg-white/5 transition-colors border-l-2 border-l-purple-500">
-                        <div className="flex items-center gap-3 text-white/80">
-                            <Palette size={20} className="text-purple-500" />
-                            <span className="font-bold">Тема оформления</span>
+                    <div className="flex flex-col gap-2">
+                        <div className="dota-card p-4 flex flex-col gap-3 hover:bg-white/5 transition-colors border-l-2 border-l-purple-500">
+                            <div className="flex items-center gap-3 text-white/80">
+                                <Palette size={20} className="text-purple-500" />
+                                <span className="font-bold text-[var(--foreground)]">{t.profile.theme}</span>
+                            </div>
+                            <div className="flex bg-black/20 p-1 rounded-lg">
+                                <button
+                                    onClick={() => setTheme('classic')}
+                                    className={`flex-1 py-2 text-xs font-bold uppercase rounded-md transition-all ${theme === 'classic' ? 'bg-[#4b5c40] text-[#cba500] shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                                >
+                                    Classic
+                                </button>
+                                <button
+                                    onClick={() => setTheme('dark')}
+                                    className={`flex-1 py-2 text-xs font-bold uppercase rounded-md transition-all ${theme === 'dark' ? 'bg-[#c23c2a] text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                                >
+                                    Dark
+                                </button>
+                            </div>
                         </div>
-                        <div className="flex bg-black/20 p-1 rounded-lg">
-                            <button
-                                onClick={() => setTheme('classic')}
-                                className={`flex-1 py-2 text-xs font-bold uppercase rounded-md transition-all ${theme === 'classic' ? 'bg-[#4b5c40] text-[#cba500] shadow-lg' : 'text-gray-500 hover:text-white'}`}
-                            >
-                                Classic
-                            </button>
-                            <button
-                                onClick={() => setTheme('dark')}
-                                className={`flex-1 py-2 text-xs font-bold uppercase rounded-md transition-all ${theme === 'dark' ? 'bg-[#c23c2a] text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
-                            >
-                                Dark
-                            </button>
-                        </div>
+
+                        <button
+                            onClick={() => router.push('/admin')}
+                            className="dota-card p-4 flex items-center justify-between hover:bg-white/5 transition-colors border-l-2 border-l-orange-500"
+                        >
+                            <div className="flex items-center gap-3 text-white/80">
+                                <Settings size={20} className="text-orange-500" />
+                                <span className="font-bold text-[var(--foreground)]">{t.profile.admin_panel}</span>
+                            </div>
+                        </button>
+                        <button className="dota-card p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
+                            <div className="flex items-center gap-3 text-white/80">
+                                <Star size={20} className="text-yellow-500" />
+                                <span className="font-bold text-[var(--foreground)]">{t.profile.achievements}</span>
+                            </div>
+                            <div className="text-xs text-gray-500">{t.common.soon}</div>
+                        </button>
+                        <button
+                            onClick={() => router.push('/settings')}
+                            className="dota-card p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
+                        >
+                            <div className="flex items-center gap-3 text-white/80">
+                                <Settings size={20} className="text-gray-400" />
+                                <span className="font-bold text-[var(--foreground)]">{t.profile.settings}</span>
+                            </div>
+                        </button>
                     </div>
-
-                    <button
-                        onClick={() => router.push('/admin')}
-                        className="dota-card p-4 flex items-center justify-between hover:bg-white/5 transition-colors border-l-2 border-l-orange-500"
-                    >
-                        <div className="flex items-center gap-3 text-white/80">
-                            <Settings size={20} className="text-orange-500" />
-                            <span className="font-bold">Админ-панель</span>
-                        </div>
-                    </button>
-                    <button className="dota-card p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
-                        <div className="flex items-center gap-3 text-white/80">
-                            <Star size={20} className="text-yellow-500" />
-                            <span className="font-bold">Достижения</span>
-                        </div>
-                        <div className="text-xs text-gray-500">Скоро</div>
-                    </button>
-                    <button
-                        onClick={() => router.push('/settings')}
-                        className="dota-card p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
-                    >
-                        <div className="flex items-center gap-3 text-white/80">
-                            <Settings size={20} className="text-gray-400" />
-                            <span className="font-bold">Настройки</span>
-                        </div>
-                    </button>
                 </div>
             </div>
         </div>

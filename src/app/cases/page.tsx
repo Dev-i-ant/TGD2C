@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Package, Search } from 'lucide-react';
 import Link from 'next/link';
 import { getCases } from '../admin/cases/actions';
+import { RARITY_TEXT_COLORS } from '@/lib/constants';
 
 import { useTranslation } from '@/components/LanguageProvider';
 
@@ -25,22 +26,10 @@ export default function CasesPage() {
 
     return (
         <div className="pb-24">
-            <PageHeader title={t.cases.title} />
+            <PageHeader title={t.cases.title} hideTitle />
 
-            <div className="px-6 py-4">
-                <div className="px-6 py-2">
-                    <div className="relative steam-emboss p-1">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--foreground)]/40" size={16} />
-                        <input
-                            type="text"
-                            placeholder={t.common.loading.toUpperCase() + "..."}
-                            className="w-full h-8 bg-[var(--secondary)] pl-10 pr-4 text-[11px] font-bold text-[var(--foreground)] outline-none placeholder:text-[var(--foreground)]/20 uppercase tracking-widest"
-                        />
-                    </div>
-                </div>
-            </div>
 
-            <div className="grid grid-cols-1 gap-4 p-6 pt-0">
+            <div className="grid grid-cols-1 gap-4 p-6 pt-[calc(3rem+env(safe-area-inset-top))]">
                 {isLoading ? (
                     [1, 2, 3].map(i => (
                         <div key={i} className="h-32 w-full bg-white/5 animate-pulse rounded-2xl" />
@@ -48,7 +37,7 @@ export default function CasesPage() {
                 ) : cases.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-center gap-4 opacity-40">
                         <Package size={64} />
-                        <p className="font-bold uppercase text-xs tracking-widest">{t.inventory.empty_title}</p>
+                        <p className="font-bold uppercase text-xs tracking-widest">{t.cases.available || 'КЕЙСЫ НЕ НАЙДЕНЫ'}</p>
                     </div>
                 ) : (
                     cases.map((item, index) => (
@@ -68,7 +57,7 @@ export default function CasesPage() {
                                     )}
                                 </div>
                                 <div className="flex-1">
-                                    <div className="text-[9px] text-[var(--foreground)]/40 font-black uppercase tracking-widest mb-0.5">{item.rarity}</div>
+                                    <div className={`text-[9px] font-black uppercase tracking-widest mb-0.5 ${RARITY_TEXT_COLORS[item.rarity] || 'text-[var(--foreground)]/40'}`}>{item.rarity}</div>
                                     <h3 className="font-bold text-sm text-[var(--foreground)] mb-2 uppercase tracking-tight">{item.name}</h3>
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-1.5">

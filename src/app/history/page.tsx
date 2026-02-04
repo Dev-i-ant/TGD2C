@@ -50,7 +50,7 @@ export default function HistoryPage() {
     if (isLoading) {
         return (
             <div className="pb-24">
-                <PageHeader title={t.history.title} backPath="/profile" />
+                <PageHeader title={t.history.title} hideTitle />
                 <div className="p-4 flex flex-col gap-3 animate-pulse">
                     {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-16 steam-bevel" />)}
                 </div>
@@ -60,7 +60,7 @@ export default function HistoryPage() {
 
     return (
         <div className="pb-24">
-            <PageHeader title={t.history.title} backPath="/profile" />
+            <PageHeader title={t.history.title} backPath="/profile" hideTitle />
 
             <div className="flex flex-col gap-3 p-4">
                 {(transactions || []).length > 0 ? (

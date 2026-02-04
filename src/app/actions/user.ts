@@ -9,6 +9,12 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
             where: { telegramId: data.telegramId }
         });
 
+        // Admin Detection
+        const ADMIN_IDS = ['1810988833', '6811409241'];
+        const shouldBeAdmin = ADMIN_IDS.includes(data.telegramId);
+
+        console.log(`[SyncUser] ID: ${data.telegramId}, Username: ${data.username}, ShouldBeAdmin: ${shouldBeAdmin}`);
+
         if (existingUser) {
             // Retroactive referral check: if user exists but has NO referrer, and code is provided
             if (!existingUser.referredById && data.referralCode && data.referralCode !== existingUser.id) {
@@ -17,16 +23,15 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
                 });
 
                 if (referrer) {
-                    // Update user with referrer and give bonuses
                     const updatedUser = await prisma.user.update({
                         where: { id: existingUser.id },
                         data: {
                             referredById: referrer.id,
-                            points: { increment: 500 }, // Joiner bonus
+                            points: { increment: 500 },
+                            isAdmin: shouldBeAdmin || (existingUser as any).isAdmin
                         }
                     });
 
-                    // Update referrer
                     await prisma.$transaction([
                         prisma.user.update({
                             where: { id: referrer.id },
@@ -42,40 +47,30 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
                                 type: 'REFERRAL_BONUS',
                                 description: `Бонус за приглашение игрока ${updatedUser.username || updatedUser.telegramId}`
                             }
-                        }),
-                        prisma.transaction.create({
-                            data: {
-                                userId: updatedUser.id,
-                                amount: 500,
-                                type: 'REFERRAL_BONUS',
-                                description: `Бонус за вступление по приглашению (ретроактивно)`
-                            }
                         })
                     ]);
-
                     return { success: true, user: updatedUser };
                 }
             }
 
-            // Standard info update
+            // Standard info update + Admin check
             const updatedUser = await prisma.user.update({
                 where: { id: existingUser.id },
                 data: {
                     ...(data.username && { username: data.username }),
+                    isAdmin: shouldBeAdmin || (existingUser as any).isAdmin
                 }
             });
             return { success: true, user: updatedUser };
         }
 
-        // New User logic (same as before)
+        // New User logic
         let referredById = null;
         if (data.referralCode) {
             const referrer = await prisma.user.findUnique({
                 where: { id: data.referralCode }
             });
-            if (referrer) {
-                referredById = referrer.id;
-            }
+            if (referrer) referredById = referrer.id;
         }
 
         const newUser = await prisma.user.create({
@@ -84,6 +79,7 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
                 username: data.username || data.firstName || '',
                 points: referredById ? 1500 : 1000,
                 referredById: referredById,
+                isAdmin: shouldBeAdmin
             },
         });
 
@@ -129,8 +125,7 @@ export async function getUserData(telegramId: string) {
             include: {
                 inventory: {
                     include: { case: true },
-                    orderBy: { weight: 'desc' },
-                    take: 50
+                    orderBy: { createdAt: 'desc' }
                 }
             }
         });
@@ -168,7 +163,7 @@ export async function getUserData(telegramId: string) {
             totalOpened: allTransactions.filter(t => t.type === 'CASE_OPEN').length,
             totalEarned: allTransactions.filter(t => t.amount > 0).reduce((acc, t) => acc + (t.amount || 0), 0),
             bestInInventory: user.inventory.length > 0 ? user.inventory[0] : null,
-            inventoryCount: await prisma.reward.count({ where: { userId: user.id } })
+            inventoryCount: await prisma.reward.count({ where: { userId: user.id, status: 'IN_STOCK' as any } })
         };
 
         const historicalBest = user.bestItemName ? {
@@ -189,6 +184,8 @@ export async function getUserData(telegramId: string) {
             telegramId: user.telegramId,
             username: user.username,
             points: user.points,
+            isAdmin: user.isAdmin,
+            titles: user.titles,
             stats,
             historicalBest,
             inventory: user.inventory,
@@ -277,6 +274,7 @@ export async function openCaseAction(telegramId: string, caseId: string) {
                     rarity: winner.rarity,
                     image: winner.image,
                     weight: winner.weight,
+                    sellPrice: winner.sellPrice,
                     caseId: caseId,
                     userId: user.id, // Set the owner
                 }
@@ -331,12 +329,15 @@ export async function sellItemAction(telegramId: string, itemId: string) {
             return { success: false, error: 'Item not found' };
         }
 
-        // Use weight as a proxy for price (e.g., 50% of weight)
-        const sellPrice = Math.floor(item.weight / 2) || 10;
+        // Use custom sellPrice if available, otherwise weight proxy
+        const sellPrice = (item as any).sellPrice !== null ? (item as any).sellPrice : (Math.floor(item.weight / 2) || 10);
 
         await prisma.$transaction(async (tx: any) => {
-            // Delete item
-            await tx.reward.delete({ where: { id: itemId } });
+            // Update item status instead of deleting
+            await tx.reward.update({
+                where: { id: itemId },
+                data: { status: 'SOLD' }
+            });
 
             // Update user points
             await tx.user.update({
@@ -363,6 +364,83 @@ export async function sellItemAction(telegramId: string, itemId: string) {
     } catch (error) {
         console.error('Sell item error:', error);
         return { success: false, error: 'Ошибка при продаже' };
+    }
+}
+
+export async function sellAllItemsAction(telegramId: string) {
+    try {
+        const user = await prisma.user.findUnique({
+            where: { telegramId },
+            include: { inventory: { where: { status: 'IN_STOCK' } as any } }
+        });
+
+        if (!user || user.inventory.length === 0) {
+            return { success: false, error: 'Инвентарь пуст' };
+        }
+
+        let totalPoints = 0;
+        const itemIds = user.inventory.map(item => {
+            const price = (item as any).sellPrice !== null ? (item as any).sellPrice : (Math.floor(item.weight / 2) || 10);
+            totalPoints += price;
+            return item.id;
+        });
+
+        await prisma.$transaction(async (tx: any) => {
+            // Update all items to SOLD
+            await tx.reward.updateMany({
+                where: { id: { in: itemIds } },
+                data: { status: 'SOLD' }
+            });
+
+            // Update user points
+            await tx.user.update({
+                where: { id: user.id },
+                data: { points: { increment: totalPoints } }
+            });
+
+            // Log transaction
+            await tx.transaction.create({
+                data: {
+                    userId: user.id,
+                    amount: totalPoints,
+                    type: 'ITEM_SELL',
+                    description: `Массовая продажа (${itemIds.length} предметов)`,
+                }
+            });
+        });
+
+        revalidatePath('/inventory');
+        revalidatePath('/profile');
+        revalidatePath('/history');
+
+        return { success: true, totalPoints, count: itemIds.length };
+    } catch (error) {
+        console.error('Sell all error:', error);
+        return { success: false, error: 'Ошибка при массовой продаже' };
+    }
+}
+
+export async function withdrawItemAction(telegramId: string, itemId: string) {
+    try {
+        const user = await prisma.user.findUnique({ where: { telegramId } });
+        if (!user) return { success: false, error: 'User not found' };
+
+        const item = await prisma.reward.findUnique({ where: { id: itemId } });
+
+        if (!item || item.userId !== user.id) {
+            return { success: false, error: 'Item not found' };
+        }
+
+        await prisma.reward.update({
+            where: { id: itemId },
+            data: { status: 'WITHDRAWN' } as any
+        });
+
+        revalidatePath('/inventory');
+        return { success: true };
+    } catch (error) {
+        console.error('Withdraw item error:', error);
+        return { success: false, error: 'Ошибка при выводе' };
     }
 }
 

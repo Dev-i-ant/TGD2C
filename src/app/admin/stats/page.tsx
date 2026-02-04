@@ -23,7 +23,7 @@ export default function AdminStatsPage() {
     if (isLoading) {
         return (
             <div className="pb-24">
-                <PageHeader title="Статистика" backPath="/admin" />
+                <PageHeader title="Статистика" backPath="/admin" isAdmin />
                 <div className="p-6 grid grid-cols-2 gap-2 animate-pulse">
                     {[1, 2, 3, 4].map(i => (
                         <div key={i} className="h-32 steam-bevel" />
@@ -42,7 +42,7 @@ export default function AdminStatsPage() {
 
     return (
         <div className="pb-24">
-            <PageHeader title="Статистика" backPath="/admin" />
+            <PageHeader title="Статистика" backPath="/admin" isAdmin />
 
             <div className="p-6 flex flex-col gap-6">
                 <div className="grid grid-cols-2 gap-2">

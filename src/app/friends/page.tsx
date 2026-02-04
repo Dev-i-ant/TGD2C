@@ -22,6 +22,8 @@ export default function FriendsPage() {
             if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
                 const tg = window.Telegram.WebApp;
                 const user = tg.initDataUnsafe?.user;
+                const startParam = tg.initDataUnsafe?.start_param;
+
                 if (user) {
                     let data = await getReferralData(user.id.toString());
                     if (!data) {
@@ -30,7 +32,8 @@ export default function FriendsPage() {
                             telegramId: user.id.toString(),
                             username: user.username,
                             firstName: user.first_name,
-                            lastName: user.last_name
+                            lastName: user.last_name,
+                            referralCode: startParam
                         });
                         data = await getReferralData(user.id.toString());
                     }
@@ -64,7 +67,7 @@ export default function FriendsPage() {
 
     return (
         <div className="pb-24">
-            <PageHeader title={t.friends.title} />
+            <PageHeader title={t.friends.title} hideTitle />
 
             <div className="p-6 flex flex-col gap-6">
                 {/* Referral Invite Card */}

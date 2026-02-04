@@ -18,6 +18,7 @@ model User {
   inventory    Reward[]
   tasks        UserTask[]
   transactions Transaction[]
+  isAdmin      Boolean       @default(false)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -68,6 +69,7 @@ model UserTask {
   user        User     @relation(fields: [userId], references: [id])
   task        Task     @relation(fields: [taskId], references: [id])
   completedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@unique([userId, taskId])
 }
@@ -90,10 +92,22 @@ model Reward {
   rarity    String   // e.g., "COMMON", "RARE", "LEGENDARY"
   image     String?
   weight    Int      // Drop chance weight
+  sellPrice Int?     // Optional custom sell price
+  status    String   @default("IN_STOCK") // "IN_STOCK", "SOLD", "WITHDRAWN"
   caseId    String
   case      Case     @relation(fields: [caseId], references: [id])
   userId    String?
   owner     User?    @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model GlobalItem {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  rarity    String
+  image     String?
+  sellPrice Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

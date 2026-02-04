@@ -14,7 +14,8 @@ export const translations = {
             confirm: 'Подтвердить',
             sell: 'Продать',
             back: 'Назад',
-            success: 'Успешно'
+            success: 'Успешно',
+            cancel: 'Отмена'
         },
         nav: {
             home: 'Главная',
@@ -49,7 +50,16 @@ export const translations = {
             empty_title: 'Инвентарь пуст',
             empty_desc: 'Открой свой первый кейс!',
             sell_item: 'Продать предмет',
-            withdraw: 'Вывести в Steam'
+            withdraw: 'Вывести в Steam',
+            sell_all_button: 'Продать всё',
+            mass_sell_confirm_title: 'Подтверждение продажи',
+            mass_sell_confirm_desc: 'Вы собираетесь продать все предметы в наличии ({count} шт.) на общую сумму:',
+            empty_in_stock_title: 'Здесь пока ничего нет',
+            empty_in_stock_desc: 'Открывай кейсы!',
+            empty_sold_title: 'Список продаж пуст',
+            empty_sold_desc: 'Продавай предметы за BP',
+            empty_withdrawn_title: 'Список вывода пуст',
+            empty_withdrawn_desc: 'Выводи редкие предметы в Steam'
         },
         settings: {
             title: 'Настройки',
@@ -111,7 +121,7 @@ export const translations = {
             activate: 'Активировать',
             reset: 'Сбросить',
             contents: 'Содержимое',
-            acquired: 'Получен новый юнит',
+            acquired: 'Вы получили!',
             available: 'Доступные сокровища',
             open_case: 'Открыть кейс'
         }
@@ -129,7 +139,8 @@ export const translations = {
             confirm: 'Confirm',
             sell: 'Sell',
             back: 'Back',
-            success: 'Success'
+            success: 'Success',
+            cancel: 'Cancel'
         },
         nav: {
             home: 'Home',
@@ -164,7 +175,16 @@ export const translations = {
             empty_title: 'Inventory is empty',
             empty_desc: 'Open your first case!',
             sell_item: 'Sell Item',
-            withdraw: 'Withdraw to Steam'
+            withdraw: 'Withdraw to Steam',
+            sell_all_button: 'Sell All',
+            mass_sell_confirm_title: 'Mass Sell Confirmation',
+            mass_sell_confirm_desc: 'You are about to sell all items in stock ({count} items) for a total of:',
+            empty_in_stock_title: 'Nothing here yet',
+            empty_in_stock_desc: 'Open some cases!',
+            empty_sold_title: 'Sales list is empty',
+            empty_sold_desc: 'Sell items for BP',
+            empty_withdrawn_title: 'Withdrawal list is empty',
+            empty_withdrawn_desc: 'Withdraw rare items to Steam'
         },
         settings: {
             title: 'Settings',
@@ -226,7 +246,7 @@ export const translations = {
             activate: 'Activate Unit',
             reset: 'Reset Sequence',
             contents: 'Unit Contents',
-            acquired: 'Unit Acquired',
+            acquired: 'You received!',
             available: 'Available Treasures',
             open_case: 'Open Case'
         }

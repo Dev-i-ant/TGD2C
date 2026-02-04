@@ -47,7 +47,7 @@ export default function LeaderboardPage() {
 
     return (
         <div className="pb-24">
-            <PageHeader title={t.leaderboard.title} />
+            <PageHeader title={t.leaderboard.title} backPath="/profile" />
 
             <div className="p-6 flex flex-col gap-8">
                 {/* Podium */}

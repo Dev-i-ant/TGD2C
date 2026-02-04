@@ -81,7 +81,7 @@ export default function EditCasePage() {
 
     return (
         <div className="pb-24">
-            <PageHeader title={`Редактирование: ${name}`} backPath="/admin/cases" />
+            <PageHeader title={`Редактирование: ${name}`} backPath="/admin/cases" isAdmin />
 
             <div className="p-6 flex flex-col gap-6">
                 <div className="flex flex-col gap-4">

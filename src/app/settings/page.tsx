@@ -23,22 +23,22 @@ export default function SettingsPage() {
 
     return (
         <div className="pb-24">
-            <PageHeader title={t.settings.title} />
+            <PageHeader title={t.settings.title} backPath="/profile" hideTitle />
 
             <div className="p-6 flex flex-col gap-8">
                 {/* Language Switcher */}
                 <div className="flex flex-col gap-4">
                     <label className="steam-header-text text-xs text-[var(--accent)] px-2">{t.settings.language}</label>
-                    <div className="steam-bevel p-1 bg-black/20 flex gap-1">
+                    <div className="steam-emboss p-1 bg-black/40 flex gap-2">
                         <button
                             onClick={() => setLanguage('ru')}
-                            className={`flex-1 py-3 text-xs font-black uppercase transition-all ${language === 'ru' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                            className={`flex-1 py-3 text-[10px] font-black uppercase transition-all rounded-lg ${language === 'ru' ? 'bg-[var(--accent)] text-white shadow-[0_0_15px_rgba(150,135,50,0.3)]' : 'text-[var(--foreground)]/30 hover:text-[var(--foreground)]/60'}`}
                         >
                             РУССКИЙ
                         </button>
                         <button
                             onClick={() => setLanguage('en')}
-                            className={`flex-1 py-3 text-xs font-black uppercase transition-all ${language === 'en' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                            className={`flex-1 py-3 text-[10px] font-black uppercase transition-all rounded-lg ${language === 'en' ? 'bg-[var(--accent)] text-white shadow-[0_0_15px_rgba(150,135,50,0.3)]' : 'text-[var(--foreground)]/30 hover:text-[var(--foreground)]/60'}`}
                         >
                             ENGLISH
                         </button>

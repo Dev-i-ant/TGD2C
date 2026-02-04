@@ -18,9 +18,25 @@ export async function getUserTaskStatus(userId: string) {
     try {
         const completedTasks = await prisma.userTask.findMany({
             where: { userId },
-            select: { taskId: true }
+            include: { task: true }
         });
-        return completedTasks.map(t => t.taskId);
+
+        const now = new Date();
+        const statusMap: Record<string, { lastCompletedAt: Date }> = {};
+
+        completedTasks.forEach(ut => {
+            if (ut.task.type === 'DAILY') {
+                const lastCompleted = new Date((ut as any).updatedAt);
+                const diffHours = (now.getTime() - lastCompleted.getTime()) / (1000 * 60 * 60);
+                if (diffHours < 24) {
+                    statusMap[ut.taskId] = { lastCompletedAt: lastCompleted };
+                }
+            } else {
+                statusMap[ut.taskId] = { lastCompletedAt: new Date(ut.completedAt) };
+            }
+        });
+
+        return statusMap;
     } catch (error) {
         console.error('Failed to fetch user tasks:', error);
         return [];
@@ -105,15 +121,55 @@ export async function completeTaskAction(telegramId: string, taskId: string) {
 
         if (!user || !task) return { success: false, error: 'User or task not found' };
 
-        // Check if already completed (for non-DAILY tasks)
-        if (task.type !== 'DAILY') {
+        if (task.type === 'DAILY') {
+            const existing = await prisma.userTask.findFirst({
+                where: { userId: user.id, taskId }
+            });
+
+            if (existing) {
+                const now = new Date();
+                const lastCompleted = new Date(existing.updatedAt);
+                const diffHours = (now.getTime() - lastCompleted.getTime()) / (1000 * 60 * 60);
+
+                if (diffHours < 24) {
+                    return { success: false, error: 'Задание доступно раз в 24 часа' };
+                }
+
+                // Re-complete the task: update the timestamp
+                await prisma.$transaction(async (tx) => {
+                    await tx.user.update({
+                        where: { id: user.id },
+                        data: { points: { increment: task.points } }
+                    });
+
+                    await (tx.userTask as any).update({
+                        where: { id: existing.id },
+                        data: { completedAt: now, updatedAt: now }
+                    });
+
+                    await tx.transaction.create({
+                        data: {
+                            userId: user.id,
+                            amount: task.points,
+                            type: 'TASK_REWARD',
+                            description: `Ежедневная награда: ${task.title}`,
+                        }
+                    });
+                });
+
+                revalidatePath('/tasks');
+                revalidatePath('/profile');
+                return { success: true, points: task.points };
+            }
+        } else {
+            // Non-DAILY check
             const existing = await prisma.userTask.findFirst({
                 where: { userId: user.id, taskId }
             });
             if (existing) return { success: false, error: 'Задание уже выполнено' };
         }
 
-        // Transactional update
+        // Transactional update for first-time completion
         await prisma.$transaction(async (tx) => {
             // Add points
             await tx.user.update({

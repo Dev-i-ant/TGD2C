@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import PageHeader from '@/components/ui/PageHeader';
 import { motion } from 'framer-motion';
-import { Wallet, Package, Trophy, Settings, Star, Palette, Sparkles, Share2, Check, History as HistoryIcon } from 'lucide-react';
+import { Wallet, Package, Trophy, Settings, Star, Palette, Sparkles, Share2, Check, History as HistoryIcon, ShieldCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getUserData } from '../actions/user';
 import { useTheme } from '@/components/ThemeProvider';
@@ -138,7 +138,7 @@ export default function ProfilePage() {
                             <div className="w-8 h-8 steam-emboss flex items-center justify-center">
                                 <HistoryIcon size={16} className="text-[var(--accent)]" />
                             </div>
-                            <span className="steam-header-text text-[var(--foreground)]">{t.common.history}</span>
+                            <span className="steam-header-text text-[var(--foreground)] font-black">{t.history.title}</span>
                         </div>
                         <Check size={16} className="text-gray-600 group-hover:text-[var(--accent)] transition-colors" />
                     </button>
@@ -167,26 +167,24 @@ export default function ProfilePage() {
 
                                 <div className="flex-1 min-w-0">
                                     <h4 className={`text-lg font-black uppercase leading-tight truncate ${RARITY_TEXT_COLORS[userData?.historicalBest?.rarity || userData?.stats?.bestInInventory?.rarity || ''] || 'text-[var(--accent)]'}`}>
-                                        {userData?.historicalBest?.name || userData?.stats?.bestInInventory?.name || t.profile.no_rewards}
+                                        {userData?.historicalBest?.name || userData?.stats?.bestInInventory?.name || (language === 'ru' ? 'Пусто' : 'Empty')}
                                     </h4>
                                     <p className="text-[9px] text-[var(--foreground)]/40 font-bold uppercase tracking-widest mt-1">
-                                        {userData?.historicalBest ? t.profile.historical_best_desc : t.profile.current_best_desc}
+                                        {userData?.historicalBest ? t.profile.historical_best_desc : (userData?.stats?.bestInInventory ? t.profile.current_best_desc : (language === 'ru' ? 'Открой свой первый кейс!' : 'Open your first case!'))}
                                     </p>
 
-                                    {userData?.historicalBest && (
+                                    {userData?.historicalBest || userData?.stats?.bestInInventory ? (
                                         <button
                                             onClick={() => {
-                                                const itemName = userData.historicalBest?.name;
+                                                const itemName = userData.historicalBest?.name || userData?.stats?.bestInInventory?.name;
                                                 const shareText = language === 'ru'
                                                     ? `Мой рекордный дроп: ${itemName}! 🏆`
                                                     : `My record drop: ${itemName}! 🏆`;
 
                                                 try {
                                                     if (window.Telegram?.WebApp) {
-                                                        const botUsername = process.env.NEXT_PUBLIC_BOT_USERNAME || 'WhoMyFatherBot';
+                                                        const botUsername = process.env.NEXT_PUBLIC_BOT_USERNAME || 'Open_My_Case_bot';
                                                         const referralLink = `https://t.me/${botUsername}/app?startapp=${userData.id}`;
-
-                                                        // Direct share link works even without Inline Mode
                                                         const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(shareText)}`;
                                                         window.Telegram.WebApp.openTelegramLink(shareUrl);
                                                     }
@@ -198,6 +196,13 @@ export default function ProfilePage() {
                                         >
                                             <Share2 size={12} /> {t.profile.share_record}
                                         </button>
+                                    ) : (
+                                        <button
+                                            onClick={() => router.push('/cases')}
+                                            className="mt-3 flex items-center gap-2 bg-[var(--accent)] text-white text-[9px] font-black uppercase px-4 py-2 rounded-lg hover:opacity-80 transition-opacity active:scale-95 shadow-[0_0_15px_rgba(var(--accent-rgb),0.3)]"
+                                        >
+                                            <Package size={12} /> {t.common.open.toUpperCase()}
+                                        </button>
                                     )}
                                 </div>
                             </div>
@@ -205,21 +210,21 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="flex flex-col gap-2">
-                        <div className="dota-card p-4 flex flex-col gap-3 hover:bg-white/5 transition-colors border-l-2 border-l-purple-500">
-                            <div className="flex items-center gap-3 text-white/80">
+                        <div className="dota-card p-4 flex flex-col gap-3 transition-colors border-l-2 border-l-purple-500">
+                            <div className="flex items-center gap-3">
                                 <Palette size={20} className="text-purple-500" />
                                 <span className="font-bold text-[var(--foreground)]">{t.profile.theme}</span>
                             </div>
-                            <div className="flex bg-black/20 p-1 rounded-lg">
+                            <div className="flex bg-black/40 p-1 rounded-lg">
                                 <button
                                     onClick={() => setTheme('classic')}
-                                    className={`flex-1 py-2 text-xs font-bold uppercase rounded-md transition-all ${theme === 'classic' ? 'bg-[#4b5c40] text-[#cba500] shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                                    className={`flex-1 py-2 text-[10px] font-black uppercase rounded-md transition-all ${theme === 'classic' ? 'bg-[#4b5c40] text-[#cba500] shadow-lg' : 'text-[var(--foreground)]/20 hover:text-[var(--foreground)]/40'}`}
                                 >
                                     Classic
                                 </button>
                                 <button
                                     onClick={() => setTheme('dark')}
-                                    className={`flex-1 py-2 text-xs font-bold uppercase rounded-md transition-all ${theme === 'dark' ? 'bg-[#c23c2a] text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                                    className={`flex-1 py-2 text-[10px] font-black uppercase rounded-md transition-all ${theme === 'dark' ? 'bg-[#c23c2a] text-white shadow-lg' : 'text-[var(--foreground)]/20 hover:text-[var(--foreground)]/40'}`}
                                 >
                                     Dark
                                 </button>
@@ -227,30 +232,36 @@ export default function ProfilePage() {
                         </div>
 
                         <button
-                            onClick={() => router.push('/admin')}
-                            className="dota-card p-4 flex items-center justify-between hover:bg-white/5 transition-colors border-l-2 border-l-orange-500"
-                        >
-                            <div className="flex items-center gap-3 text-white/80">
-                                <Settings size={20} className="text-orange-500" />
-                                <span className="font-bold text-[var(--foreground)]">{t.profile.admin_panel}</span>
-                            </div>
-                        </button>
-                        <button className="dota-card p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
-                            <div className="flex items-center gap-3 text-white/80">
-                                <Star size={20} className="text-yellow-500" />
-                                <span className="font-bold text-[var(--foreground)]">{t.profile.achievements}</span>
-                            </div>
-                            <div className="text-xs text-gray-500">{t.common.soon}</div>
-                        </button>
-                        <button
                             onClick={() => router.push('/settings')}
-                            className="dota-card p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
+                            className="dota-card p-4 flex items-center justify-between hover:bg-white/5 transition-colors border-l-2 border-l-blue-500"
                         >
                             <div className="flex items-center gap-3 text-white/80">
-                                <Settings size={20} className="text-gray-400" />
+                                <Settings size={20} className="text-blue-500" />
                                 <span className="font-bold text-[var(--foreground)]">{t.profile.settings}</span>
                             </div>
                         </button>
+
+                        <button
+                            className="dota-card p-4 flex items-center justify-between hover:bg-white/5 transition-colors opacity-60"
+                        >
+                            <div className="flex items-center gap-3 text-white/80">
+                                <Trophy size={20} className="text-yellow-600" />
+                                <span className="font-bold text-[var(--foreground)]">{t.profile.achievements || t.nav.leaderboard}</span>
+                            </div>
+                            <div className="text-[9px] font-black uppercase tracking-widest text-yellow-600/50">{t.common.soon}</div>
+                        </button>
+
+                        {userData?.isAdmin && (
+                            <button
+                                onClick={() => router.push('/admin')}
+                                className="dota-card p-4 flex items-center justify-between hover:bg-white/5 transition-colors border-l-2 border-l-orange-500"
+                            >
+                                <div className="flex items-center gap-3 text-white/80">
+                                    <ShieldCheck size={20} className="text-orange-500" />
+                                    <span className="font-bold text-[var(--foreground)]">{t.profile.admin || 'Admin Panel'}</span>
+                                </div>
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

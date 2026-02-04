@@ -1,6 +1,7 @@
 services:
   # Next.js Web Application
   web:
+    container_name: TGD2OC_web
     build:
       context: .
       dockerfile: Dockerfile
@@ -22,13 +23,14 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3000" ]
+      test: [ "CMD", "wget", "--spider", "-q", "http://0.0.0.0:3000" ]
       interval: 5s
       timeout: 5s
       retries: 5
 
   # Telegram Bot
   bot:
+    container_name: TGD2OC_bot
     build:
       context: .
       dockerfile: Dockerfile.bot
@@ -41,12 +43,14 @@ services:
       - ./dev.db:/app/dev.db
     restart: unless-stopped
     depends_on:
-      - web
+      web:
+        condition: service_healthy
     networks:
       - app-network
 
-  # Cloudflare Tunnel for stable HTTPS
+  # Cloudflare Tunnel for stable HTTPS (Required by Telegram)
   tunnel:
+    container_name: TGD2OC_tunnel
     image: cloudflare/cloudflared:latest
     command: tunnel --no-autoupdate --url http://web:3000 --protocol http2
     depends_on:
@@ -57,4 +61,5 @@ services:
 
 networks:
   app-network:
+    name: TGD2OC_network
     driver: bridge

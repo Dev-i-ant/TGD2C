@@ -74,7 +74,7 @@ export default function AdminTasksPage() {
 
     return (
         <div className="pb-24">
-            <PageHeader title="Управление задачами" backPath="/admin" />
+            <PageHeader title="Задания" backPath="/admin" isAdmin />
 
             <div className="p-6 flex flex-col gap-6">
                 <button

@@ -58,7 +58,7 @@ export default function Home() {
   if (!isClient) return null;
 
   return (
-    <div className="flex flex-col gap-6 p-6 pb-24 pt-[calc(7rem+env(safe-area-inset-top))]">
+    <div className="flex flex-col gap-6 p-6 pb-24 pt-[calc(6.5rem+env(safe-area-inset-top))]">
       {/* Header / Profile */}
       <section className="flex items-center justify-between steam-bevel p-4 mx-0">
         <div>
@@ -95,7 +95,7 @@ export default function Home() {
         </div>
         <button
           onClick={() => router.push('/history')}
-          className="steam-bevel mt-4 steam-header-text text-[9px] px-4 py-1.5 transition-none relative z-10"
+          className="steam-bevel mt-4 steam-header-text text-[9px] px-4 py-1.5 transition-none relative z-10 bg-[var(--secondary)] text-[var(--foreground)] active:bg-[var(--background)]"
         >
           {t.home.view_transactions}
         </button>
@@ -145,7 +145,7 @@ export default function Home() {
                 <span className="text-[var(--accent)] font-black text-sm">{featuredCase.price} {t.common.bp}</span>
                 <button
                   onClick={() => router.push(`/cases/${featuredCase.id}`)}
-                  className="steam-bevel bg-[var(--background)] text-[var(--foreground)] px-4 py-1.5 uppercase font-black text-[9px] active:translate-y-[1px] transition-none"
+                  className="steam-bevel bg-[var(--accent)] text-white px-4 py-1.5 uppercase font-black text-[9px] active:translate-y-[1px] transition-none shadow-[0_0_15px_rgba(150,135,50,0.3)]"
                 >
                   {t.common.open}
                 </button>

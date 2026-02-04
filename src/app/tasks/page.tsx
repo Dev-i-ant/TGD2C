@@ -11,9 +11,15 @@ import { useTranslation } from '@/components/LanguageProvider';
 export default function TasksPage() {
     const { t } = useTranslation();
     const [tasks, setTasks] = useState<any[]>([]);
-    const [completedTaskIds, setCompletedTaskIds] = useState<string[]>([]);
+    const [taskStatus, setTaskStatus] = useState<Record<string, { lastCompletedAt: Date }>>({});
     const [isLoading, setIsLoading] = useState(true);
     const [claimingId, setClaimingId] = useState<string | null>(null);
+    const [now, setNow] = useState(new Date());
+
+    useEffect(() => {
+        const interval = setInterval(() => setNow(new Date()), 1000);
+        return () => clearInterval(interval);
+    }, []);
 
     useEffect(() => {
         async function load() {
@@ -21,12 +27,12 @@ export default function TasksPage() {
                 const tg = window.Telegram.WebApp;
                 const user = tg.initDataUnsafe?.user;
                 if (user) {
-                    const [allTasks, completed] = await Promise.all([
+                    const [allTasks, status] = await Promise.all([
                         getTasks(),
                         getUserTaskStatus(user.id.toString())
                     ]);
                     setTasks(allTasks);
-                    setCompletedTaskIds(completed);
+                    setTaskStatus(status as Record<string, { lastCompletedAt: Date }>);
                 }
             }
             setIsLoading(false);
@@ -35,48 +41,50 @@ export default function TasksPage() {
     }, []);
 
     const handleAction = async (task: any) => {
-        if (completedTaskIds.includes(task.id)) return;
+        if (taskStatus[task.id]) return;
 
-        // Use Telegram WebApp API for opening links if available
         const tg = window.Telegram?.WebApp;
-
-        // If it's a gated task with a link
         if (task.channelId && (task.type === 'SUBSCRIPTION' || task.type === 'SOCIAL')) {
             const isTelegramUrl = task.channelId.startsWith('@') || task.channelId.includes('t.me/');
-
             if (isTelegramUrl) {
-                const url = task.channelId.startsWith('@')
-                    ? `https://t.me/${task.channelId.substring(1)}`
-                    : task.channelId;
-
-                if (tg?.openTelegramLink) {
-                    tg.openTelegramLink(url);
-                } else {
-                    window.open(url, '_blank');
-                }
+                const url = task.channelId.startsWith('@') ? `https://t.me/${task.channelId.substring(1)}` : task.channelId;
+                if (tg?.openTelegramLink) tg.openTelegramLink(url);
+                else window.open(url, '_blank');
             } else {
-                if (tg?.openLink) {
-                    tg.openLink(task.channelId);
-                } else {
-                    window.open(task.channelId, '_blank');
-                }
+                if (tg?.openLink) tg.openLink(task.channelId);
+                else window.open(task.channelId, '_blank');
             }
             return;
         }
 
-        // If it's a claimable task (DAILY or others without forced flow)
         setClaimingId(task.id);
         const user = tg?.initDataUnsafe?.user;
-
         if (user) {
             const result = await completeTaskAction(user.id.toString(), task.id);
             if (result.success) {
-                setCompletedTaskIds(prev => [...prev, task.id]);
+                setTaskStatus(prev => ({
+                    ...prev,
+                    [task.id]: { lastCompletedAt: new Date() }
+                }));
             } else {
                 alert(result.error);
             }
         }
         setClaimingId(null);
+    };
+
+    const getCountdown = (lastCompletedAt: Date) => {
+        const last = new Date(lastCompletedAt);
+        const next = new Date(last.getTime() + 24 * 60 * 60 * 1000);
+        const diff = next.getTime() - now.getTime();
+
+        if (diff <= 0) return null;
+
+        const h = Math.floor(diff / (1000 * 60 * 60));
+        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
     const getIcon = (type: string) => {
@@ -89,7 +97,7 @@ export default function TasksPage() {
 
     return (
         <div className="pb-24">
-            <PageHeader title={t.tasks.title} />
+            <PageHeader title={t.tasks.title} hideTitle />
 
             <div className="flex flex-col gap-4 p-6">
                 {isLoading ? (
@@ -105,7 +113,9 @@ export default function TasksPage() {
                 ) : (
                     tasks.map((task, index) => {
                         const Icon = getIcon(task.type);
-                        const isCompleted = completedTaskIds.includes(task.id);
+                        const status = taskStatus[task.id];
+                        const isCompleted = !!status;
+                        const countdown = task.type === 'DAILY' && status ? getCountdown(status.lastCompletedAt) : null;
                         const isClaimable = task.type === 'DAILY' || !task.channelId;
 
                         return (
@@ -114,29 +124,36 @@ export default function TasksPage() {
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.05 }}
-                                className={`steam-bevel p-2 flex items-center gap-4 transition-opacity ${isCompleted ? 'opacity-50 grayscale' : ''}`}
+                                className={`dota-card p-4 flex items-center gap-4 transition-all relative overflow-hidden ${isCompleted ? 'opacity-60 bg-black/40' : 'bg-gradient-to-r from-[var(--secondary)] to-transparent border-l-2 border-l-[var(--accent)]'}`}
                             >
-                                <div className={`w-10 h-10 steam-emboss flex items-center justify-center ${isCompleted ? 'text-green-500/50' : 'text-[var(--accent)]'}`}>
-                                    {isCompleted ? <Check size={20} /> : <Icon size={20} />}
+                                <div className={`w-12 h-12 steam-emboss flex items-center justify-center shrink-0 ${isCompleted ? 'text-green-500/50' : 'text-[var(--accent)]'}`}>
+                                    {isCompleted && !countdown ? <Check size={24} /> : <Icon size={24} />}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h3 className="font-bold text-[var(--foreground)] truncate text-[11px] uppercase tracking-tighter">{task.title}</h3>
-                                    <p className="text-[9px] text-[var(--foreground)]/40 line-clamp-1 uppercase font-bold tracking-tighter">{task.description}</p>
+                                    <h3 className="font-black text-[var(--foreground)] truncate text-[12px] uppercase tracking-tight">{task.title}</h3>
+                                    <p className="text-[9px] text-[var(--foreground)]/40 line-clamp-2 uppercase font-bold tracking-tight leading-tight mt-0.5">{task.description}</p>
+                                    {countdown && (
+                                        <div className="flex items-center gap-2 mt-2 bg-[var(--accent)]/10 px-2 py-1 rounded w-fit border border-[var(--accent)]/20 animate-in fade-in zoom-in duration-300">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse shadow-[0_0_8px_rgba(var(--accent-rgb),1)]" />
+                                            <span className="text-[10px] font-black text-[var(--accent)] uppercase tracking-[0.2em]">{countdown}</span>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="flex flex-col items-end gap-2 text-right">
-                                    <span className="text-[var(--accent)] font-black text-[10px]">+{task.points} {t.common.bp}</span>
-                                    {isCompleted ? (
-                                        <div className="steam-emboss text-green-500/50 p-1">
-                                            <Check size={14} />
-                                        </div>
-                                    ) : (
+                                    <span className={`font-black text-[11px] ${isCompleted ? 'text-[var(--foreground)]/20' : 'text-[var(--accent)]'}`}>+{task.points} {t.common.bp}</span>
+                                    {!isCompleted && (
                                         <button
                                             disabled={claimingId === task.id}
                                             onClick={() => handleAction(task)}
-                                            className="steam-bevel h-8 px-3 text-[9px] font-black uppercase active:translate-y-[1px] transition-none disabled:opacity-50"
+                                            className="steam-bevel bg-[var(--background)] h-8 px-4 text-[9px] font-black uppercase active:translate-y-[1px] transition-none disabled:opacity-50 text-[var(--foreground)] border-[var(--border-light)]"
                                         >
                                             {isClaimable ? t.tasks.claim.toUpperCase() : t.common.open.toUpperCase()}
                                         </button>
+                                    )}
+                                    {isCompleted && countdown && (
+                                        <div className="steam-bevel bg-black/20 h-8 px-3 flex items-center justify-center">
+                                            <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">{t.common.completed.toUpperCase()}</span>
+                                        </div>
                                     )}
                                 </div>
                             </motion.div>

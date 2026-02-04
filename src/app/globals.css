@@ -80,6 +80,9 @@ body {
   touch-action: manipulation;
   -webkit-text-size-adjust: 100%;
   font-family: var(--font-main);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 @layer components {
@@ -105,6 +108,18 @@ body {
     border-bottom: var(--steam-eb);
     border-right: var(--steam-er);
     border-radius: var(--card-radius);
+  }
+
+  /* Universal tactile feedback for Classic Theme - INTERACTIVE ONLY */
+  :root:not([data-theme='dark']) button:active,
+  :root:not([data-theme='dark']) a:active,
+  :root:not([data-theme='dark']) .cursor-pointer:active {
+    background-color: var(--secondary) !important;
+    border-top: var(--steam-et) !important;
+    border-left: var(--steam-el) !important;
+    border-bottom: var(--steam-eb) !important;
+    border-right: var(--steam-er) !important;
+    transform: translateY(1px) !important;
   }
 
   .dota-card {
@@ -135,5 +150,11 @@ body {
     font-size: 11px;
     font-weight: var(--font-weight-header);
     text-transform: var(--text-transform);
+  }
+
+  img {
+    user-drag: none;
+    pointer-events: none;
+    -webkit-user-drag: none;
   }
 }

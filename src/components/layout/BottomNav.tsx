@@ -74,7 +74,7 @@ export default function BottomNav() {
                         <Link
                             key={item.path}
                             href={item.path}
-                            className={`steam-bevel flex flex-col items-center justify-center w-[23%] h-12 gap-1 active:translate-y-[1px] transition-none ${isActive ? 'bg-[var(--secondary)] border-top-[var(--border-dark)] border-left-[var(--border-dark)] border-bottom-[var(--border-light)] border-right-[var(--border-light)]' : 'bg-[var(--background)]'}`}
+                            className={`flex flex-col items-center justify-center w-[23%] h-12 gap-1 active:translate-y-[1px] transition-none ${isActive ? 'steam-emboss bg-[var(--secondary)]' : 'steam-bevel bg-[var(--background)] opacity-60 hover:opacity-100'}`}
                         >
                             <item.icon
                                 size={18}

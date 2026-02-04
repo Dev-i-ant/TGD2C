@@ -62,7 +62,7 @@ export default function AdminUsersPage() {
 
     return (
         <div className="pb-24">
-            <PageHeader title="Пользователи" backPath="/admin" />
+            <PageHeader title="Пользователи" backPath="/admin" isAdmin />
 
             <div className="p-6 flex flex-col gap-6">
                 {/* Search Bar */}
@@ -70,7 +70,7 @@ export default function AdminUsersPage() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--foreground)]/20" size={16} />
                     <input
                         type="text"
-                        placeholder="FILTER_BY_ID_OR_USERNAME..."
+                        placeholder="ПОИСК_ПО_ID_ИЛИ_ИМЕНИ..."
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                         className="w-full bg-transparent py-3 pl-10 pr-4 text-[var(--foreground)] text-[11px] font-black uppercase tracking-widest focus:outline-none placeholder:text-[var(--foreground)]/10"
@@ -103,7 +103,7 @@ export default function AdminUsersPage() {
                                     <div className="flex flex-col">
                                         <div className="flex items-center gap-2">
                                             <span className="text-[var(--foreground)] font-black text-[11px] uppercase tracking-tighter">
-                                                {user.username || 'NO_IDENTIFIER'}
+                                                {user.username || 'БЕЗ_ИМЕНИ'}
                                             </span>
                                             <button
                                                 onClick={() => handleCopyId(user.telegramId)}
@@ -136,14 +136,14 @@ export default function AdminUsersPage() {
                                     <button
                                         onClick={() => handleUpdateTitles(user.id, user.titles)}
                                         className="w-8 h-8 steam-bevel flex items-center justify-center text-[var(--foreground)]/40 hover:text-[var(--accent)] active:translate-y-[1px] transition-none"
-                                        title="EDIT_TITLES"
+                                        title="ИЗМЕНИТЬ_ЗВАНИЯ"
                                     >
                                         <BadgePlus size={14} />
                                     </button>
                                     <button
                                         onClick={() => handleUpdatePoints(user.id, user.points)}
                                         className="w-8 h-8 steam-bevel flex items-center justify-center text-[var(--foreground)]/40 hover:text-[var(--foreground)] active:translate-y-[1px] transition-none"
-                                        title="EDIT_BALANCE"
+                                        title="ИЗМЕНИТЬ_БАЛАНС"
                                     >
                                         <Edit2 size={14} />
                                     </button>

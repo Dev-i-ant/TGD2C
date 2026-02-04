@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String        @id @default(cuid())
+  telegramId   String        @unique
+  username     String?
+  points       Int           @default(0)
+  tradeUrl     String?
+  inventory    Reward[]
+  tasks        UserTask[]
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  amount      Int
+  type        String // 'TASK_REWARD', 'CASE_OPEN', 'ADMIN_ADJUST'
+  description String
+  createdAt   DateTime @default(now())
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  title       String
+  description String
+  points      Int
+  type        String     // e.g., "SUBSCRIPTION"
+  channelId   String?    // For subscription tasks
+  users       UserTask[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model UserTask {
+  id          String   @id @default(cuid())
+  userId      String
+  taskId      String
+  user        User     @relation(fields: [userId], references: [id])
+  task        Task     @relation(fields: [taskId], references: [id])
+  completedAt DateTime @default(now())
+
+  @@unique([userId, taskId])
+}
+
+model Case {
+  id          String   @id @default(cuid())
+  name        String
+  price       Int
+  image       String?
+  color       String   @default("bg-blue-500")
+  rarity      String   @default("RARE")
+  rewards     Reward[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Reward {
+  id        String   @id @default(cuid())
+  name      String
+  rarity    String   // e.g., "COMMON", "RARE", "LEGENDARY"
+  image     String?
+  weight    Int      // Drop chance weight
+  caseId    String
+  case      Case     @relation(fields: [caseId], references: [id])
+  userId    String?
+  owner     User?    @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

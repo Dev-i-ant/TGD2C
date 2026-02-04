@@ -2,7 +2,7 @@ import { Telegraf, Markup } from 'telegraf';
 import 'dotenv/config';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
-const webAppUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://your-tunnel-url.ngrok-free.app';
+const webAppUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://your-app.trycloudflare.com';
 
 if (!token) {
     console.error('TELEGRAM_BOT_TOKEN is not defined in .env');

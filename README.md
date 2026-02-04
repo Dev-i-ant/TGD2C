@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Dota 2 Case Opening - Telegram Mini App
 
-## Getting Started
+Это современное Telegram Mini App (TMA) для открытия кейсов со скинами Dota 2, построенное на стеке Next.js 14 и Docker.
 
-First, run the development server:
+## 🚀 Основные возможности
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### 🎮 Игровой процесс
+- **Открытие кейсов**: Реалистичная рулетка с плавной анимацией (Framer Motion).
+- **Честный RNG**: Вероятность выпадения предметов основывается на весах, настраиваемых в админ-панели.
+- **Инвентарь**: Управление выигрышами (Продажа за BP, Вывод, Просмотр истории).
+- **Массовая продажа**: Функция "Продать всё" для быстрой очистки инвентаря.
+- **Дневные награды**: Система ежедневных бонусов и заданий.
+- **Лидерборд**: Глобальный рейтинг игроков по количеству BP.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 🛠 Админ-панель (Полный контроль)
+- **Управление кейсами**: Создание, редактирование цен, цветов и редкости.
+- **Библиотека предметов**: Глобальный репозиторий предметов для быстрого добавления в кейсы.
+- **Гибкая настройка**: Изменение шансов выпадения и цен выкупа для каждого предмета.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 🎨 Интерфейс и UX
+- **Две темы**:
+    - `Classic (Steam 2003)`: Ретро-стиль с тактильным откликом и объемными кнопками.
+    - `Dark (Dota Style)`: Современный темный интерфейс.
+- **Тактильный отклик**: Интеграция Telegram Haptic Feedback на ключевых действиях.
+- **Native Navigation**: Полная поддержка нативной кнопки "Назад" в Telegram.
+- **Безопасность**: Блокировка системного зума и контекстных меню для ощущения нативного приложения.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🛠 Технологический стек
+- **Frontend**: Next.js 14 (App Router), Tailwind CSS, Framer Motion.
+- **Backend**: Server Actions, Prisma ORM.
+- **Database**: SQLite (для локальной разработки и легкого деплоя).
+- **Bot**: Node.js скрипт для интеграции с Telegram API.
+- **Infrastructure**: Docker & Docker Compose.
 
-## Learn More
+## 📦 Быстрый запуск (Docker)
 
-To learn more about Next.js, take a look at the following resources:
+1. Клонируйте репозиторий.
+2. Создайте файл `.env` на основе следующих данных:
+   ```env
+   TELEGRAM_BOT_TOKEN=ваш_токен
+   DATABASE_URL="file:./dev.db"
+   NEXT_PUBLIC_APP_URL=ваш_cloudflare_url
+   ```
+3. Запустите проект:
+   ```bash
+   docker-compose up -d --build
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Проект будет доступен внутри Telegram через ваш туннель или домен.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+Разработано с использованием передовых практик Next.js и Telegram WebApp API.

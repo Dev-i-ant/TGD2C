@@ -136,6 +136,33 @@ export async function addReward(caseId: string, data: {
     }
 }
 
+export async function updateReward(rewardId: string, caseId: string, data: {
+    name: string;
+    rarity: string;
+    weight: number;
+    image?: string | null;
+    sellPrice?: number | null;
+}) {
+    try {
+        const reward = await prisma.reward.update({
+            where: { id: rewardId },
+            data: {
+                name: data.name,
+                rarity: data.rarity,
+                weight: data.weight,
+                sellPrice: data.sellPrice !== undefined ? data.sellPrice : null,
+                image: data.image || null,
+            },
+        });
+        revalidatePath(`/cases/${caseId}`);
+        revalidatePath(`/admin/cases/${caseId}/items`);
+        return { success: true, reward };
+    } catch (error) {
+        console.error('Failed to update reward:', error);
+        return { success: false, error: 'Ошибка при обновлении предмета' };
+    }
+}
+
 export async function deleteReward(rewardId: string, caseId: string) {
     try {
         await prisma.reward.delete({
@@ -168,6 +195,7 @@ export async function addGlobalItem(data: {
     rarity: string;
     image?: string | null;
     sellPrice?: number | null;
+    defaultWeight?: number | null;
 }) {
     try {
         const item = await prisma.globalItem.create({
@@ -176,6 +204,7 @@ export async function addGlobalItem(data: {
                 rarity: data.rarity,
                 image: data.image || null,
                 sellPrice: data.sellPrice || null,
+                defaultWeight: data.defaultWeight || 100,
             },
         });
         revalidatePath('/admin/items');
@@ -191,6 +220,7 @@ export async function updateGlobalItem(id: string, data: {
     rarity: string;
     image?: string | null;
     sellPrice?: number | null;
+    defaultWeight?: number | null;
 }) {
     try {
         const item = await prisma.globalItem.update({
@@ -200,6 +230,7 @@ export async function updateGlobalItem(id: string, data: {
                 rarity: data.rarity,
                 image: data.image || null,
                 sellPrice: data.sellPrice || null,
+                defaultWeight: data.defaultWeight || 100,
             },
         });
         revalidatePath('/admin/items');
@@ -223,7 +254,7 @@ export async function deleteGlobalItem(id: string) {
     }
 }
 
-export async function addRewardFromLibrary(caseId: string, globalItemId: string, weight: number) {
+export async function addRewardFromLibrary(caseId: string, globalItemId: string, weight?: number | null) {
     try {
         const globalItem = await prisma.globalItem.findUnique({
             where: { id: globalItemId }
@@ -237,7 +268,7 @@ export async function addRewardFromLibrary(caseId: string, globalItemId: string,
                 rarity: globalItem.rarity,
                 image: globalItem.image,
                 sellPrice: globalItem.sellPrice,
-                weight: weight,
+                weight: weight || globalItem.defaultWeight || 100,
                 caseId: caseId,
             },
         });

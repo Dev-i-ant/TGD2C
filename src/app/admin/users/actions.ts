@@ -12,6 +12,7 @@ export async function getAllUsers() {
                 telegramId: true,
                 username: true,
                 points: true,
+                isAdmin: true,
                 titles: true,
                 createdAt: true,
                 _count: {
@@ -52,5 +53,19 @@ export async function updateUserTitles(userId: string, titles: string) {
     } catch (error) {
         console.error('Failed to update user titles:', error);
         return { success: false, error: 'Ошибка при обновлении званий' };
+    }
+}
+export async function toggleAdminStatus(userId: string, currentStatus: boolean) {
+    try {
+        await prisma.user.update({
+            where: { id: userId },
+            data: { isAdmin: !currentStatus }
+        });
+        revalidatePath('/admin/users');
+        revalidatePath('/profile');
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to toggle admin status:', error);
+        return { success: false, error: 'Ошибка при изменении прав' };
     }
 }

@@ -107,7 +107,8 @@ model GlobalItem {
   name      String   @unique
   rarity    String
   image     String?
-  sellPrice Int?
-  createdAt DateTime @default(now())
+  sellPrice    Int?
+  defaultWeight Int      @default(100)
+  createdAt    DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

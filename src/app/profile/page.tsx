@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import { getUserData } from '../actions/user';
 import { useTheme } from '@/components/ThemeProvider';
 import { useTranslation } from '@/components/LanguageProvider';
-import { RARITY_TEXT_COLORS } from '@/lib/constants';
+import { getRarityTextColor } from '@/lib/constants';
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -166,7 +166,7 @@ export default function ProfilePage() {
                                 </div>
 
                                 <div className="flex-1 min-w-0">
-                                    <h4 className={`text-lg font-black uppercase leading-tight truncate ${RARITY_TEXT_COLORS[userData?.historicalBest?.rarity || userData?.stats?.bestInInventory?.rarity || ''] || 'text-[var(--accent)]'}`}>
+                                    <h4 className={`text-lg font-black uppercase leading-tight truncate ${getRarityTextColor(userData?.historicalBest?.rarity || userData?.stats?.bestInInventory?.rarity || '')}`}>
                                         {userData?.historicalBest?.name || userData?.stats?.bestInInventory?.name || (language === 'ru' ? 'Пусто' : 'Empty')}
                                     </h4>
                                     <p className="text-[9px] text-[var(--foreground)]/40 font-bold uppercase tracking-widest mt-1">

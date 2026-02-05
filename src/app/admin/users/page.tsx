@@ -3,17 +3,23 @@
 import { useEffect, useState } from 'react';
 import PageHeader from '@/components/ui/PageHeader';
 import { motion } from 'framer-motion';
-import { Users, Search, Edit2, Wallet, Package, History, Copy, Check, BadgePlus } from 'lucide-react';
-import { getAllUsers, updateUserPoints, updateUserTitles } from './actions';
+import { Users, Search, Edit2, Wallet, Package, History, Copy, Check, BadgePlus, Shield, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { getAllUsers, updateUserPoints, updateUserTitles, toggleAdminStatus } from './actions';
 
 export default function AdminUsersPage() {
     const [users, setUsers] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [currentAdminId, setCurrentAdminId] = useState<string | null>(null);
+
+    const SUPER_ADMIN_ID = '1810988833';
 
     useEffect(() => {
         loadUsers();
+        if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+            setCurrentAdminId(window.Telegram.WebApp.initDataUnsafe?.user?.id?.toString() || null);
+        }
     }, []);
 
     async function loadUsers() {
@@ -47,6 +53,18 @@ export default function AdminUsersPage() {
         if (newTitles === null) return;
 
         const result = await updateUserTitles(userId, newTitles);
+        if (result.success) {
+            loadUsers();
+        } else {
+            alert(result.error);
+        }
+    }
+
+    async function handleToggleAdmin(userId: string, currentStatus: boolean, username: string) {
+        const action = currentStatus ? 'снять' : 'назначить';
+        if (!confirm(`Вы уверены, что хотите ${action} администраторские права пользователю ${username}?`)) return;
+
+        const result = await toggleAdminStatus(userId, currentStatus);
         if (result.success) {
             loadUsers();
         } else {
@@ -112,6 +130,11 @@ export default function AdminUsersPage() {
                                                 #{user.telegramId}
                                                 {copiedId === user.telegramId ? <Check size={10} className="text-green-500" /> : <Copy size={10} />}
                                             </button>
+                                            {user.isAdmin && (
+                                                <span className="text-[7px] steam-emboss bg-orange-500/10 text-orange-500 px-1 border-orange-500/20 uppercase font-black tracking-widest flex items-center gap-0.5">
+                                                    <ShieldCheck size={8} /> ADMIN
+                                                </span>
+                                            )}
                                         </div>
                                         {user.titles && (
                                             <div className="flex flex-wrap gap-1 mt-1">
@@ -133,6 +156,15 @@ export default function AdminUsersPage() {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-1">
+                                    {currentAdminId === SUPER_ADMIN_ID && (
+                                        <button
+                                            onClick={() => handleToggleAdmin(user.id, user.isAdmin, user.username || user.telegramId)}
+                                            className={`w-8 h-8 steam-bevel flex items-center justify-center transition-none active:translate-y-[1px] ${user.isAdmin ? 'text-red-500 hover:text-red-400' : 'text-[var(--foreground)]/40 hover:text-green-500'}`}
+                                            title={user.isAdmin ? "СНЯТЬ_АДМИНА" : "НАЗНАЧИТЬ_АДМИНА"}
+                                        >
+                                            {user.isAdmin ? <ShieldAlert size={14} /> : <Shield size={14} />}
+                                        </button>
+                                    )}
                                     <button
                                         onClick={() => handleUpdateTitles(user.id, user.titles)}
                                         className="w-8 h-8 steam-bevel flex items-center justify-center text-[var(--foreground)]/40 hover:text-[var(--accent)] active:translate-y-[1px] transition-none"

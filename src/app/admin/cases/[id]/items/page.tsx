@@ -3,20 +3,11 @@
 import { useState, useEffect } from 'react';
 import PageHeader from '@/components/ui/PageHeader';
 import { useParams } from 'next/navigation';
-import { ChevronLeft, Plus, Trash2, Package, Search, TrendingUp } from 'lucide-react';
-import { getCaseRewards, addReward, deleteReward, getGlobalItems, addRewardFromLibrary } from '@/app/admin/cases/actions';
+import { ChevronLeft, Plus, Trash2, Package, Search, TrendingUp, Edit2, Save, X, ArrowUpDown, Wand2, Filter } from 'lucide-react';
+import { getCaseRewards, addReward, updateReward, deleteReward, getGlobalItems, addRewardFromLibrary } from '@/app/admin/cases/actions';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const RARITIES = ['COMMON', 'UNCOMMON', 'RARE', 'MYTHICAL', 'LEGENDARY', 'IMMORTAL', 'ARCANA'];
-const RARITY_COLORS: Record<string, string> = {
-    'COMMON': 'text-gray-400',
-    'UNCOMMON': 'text-green-500',
-    'RARE': 'text-blue-500',
-    'MYTHICAL': 'text-indigo-500',
-    'LEGENDARY': 'text-pink-500',
-    'IMMORTAL': 'text-orange-500',
-    'ARCANA': 'text-purple-500',
-};
+import { RARITIES, RARITY_COLORS, getRarityColor } from '@/lib/constants';
 
 export default function CaseItemsPage() {
     const { id } = useParams();
@@ -31,6 +22,12 @@ export default function CaseItemsPage() {
     const [sellPrice, setSellPrice] = useState('');
     const [image, setImage] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [editingReward, setEditingReward] = useState<any>(null);
+    const [isAutoWeight, setIsAutoWeight] = useState(true);
+
+    // Sorting state
+    const [sortBy, setSortBy] = useState<'rarity' | 'weight' | 'price' | 'name'>('weight');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
     // Library Modal state
     const [isLibraryOpen, setIsLibraryOpen] = useState(false);
@@ -47,6 +44,33 @@ export default function CaseItemsPage() {
         setRewards(data);
         setIsLoading(false);
     }
+
+    const calculateWeightFromPrice = (price: string) => {
+        const p = parseInt(price);
+        if (isNaN(p) || p <= 0) return '100';
+        return Math.max(1, Math.floor(10000 / p)).toString();
+    };
+
+    const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setSellPrice(val);
+        if (isAutoWeight) {
+            setWeight(calculateWeightFromPrice(val));
+        }
+    };
+
+    const handleWeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setWeight(e.target.value);
+        setIsAutoWeight(false);
+    };
+
+    const toggleAutoWeight = () => {
+        const next = !isAutoWeight;
+        setIsAutoWeight(next);
+        if (next) {
+            setWeight(calculateWeightFromPrice(sellPrice));
+        }
+    };
 
     async function openLibrary() {
         setIsLibraryOpen(true);
@@ -66,14 +90,52 @@ export default function CaseItemsPage() {
         });
 
         if (result.success) {
-            setName('');
-            setSellPrice('');
-            setImage('');
+            resetForm();
             fetchRewards();
         } else {
             alert(result.error);
         }
         setIsSaving(false);
+    };
+
+    const handleEdit = (reward: any) => {
+        setEditingReward(reward);
+        setName(reward.name);
+        setRarity(reward.rarity);
+        setWeight(reward.weight.toString());
+        setSellPrice(reward.sellPrice?.toString() || '');
+        setImage(reward.image || '');
+        setIsAutoWeight(false); // Manual mode when editing existing
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleSaveEdit = async () => {
+        if (!name || !editingReward) return;
+        setIsSaving(true);
+        const result = await updateReward(editingReward.id, id as string, {
+            name,
+            rarity,
+            weight: parseInt(weight),
+            sellPrice: sellPrice ? parseInt(sellPrice) : null,
+            image: image || null
+        });
+
+        if (result.success) {
+            resetForm();
+            fetchRewards();
+        } else {
+            alert(result.error);
+        }
+        setIsSaving(false);
+    };
+
+    const resetForm = () => {
+        setEditingReward(null);
+        setName('');
+        setWeight('100');
+        setSellPrice('');
+        setImage('');
+        setIsAutoWeight(true);
     };
 
     const handleAddFromLibrary = async (globalItem: any) => {
@@ -99,6 +161,35 @@ export default function CaseItemsPage() {
         }
     };
 
+    const sortedRewards = [...rewards].sort((a, b) => {
+        // If sorting by weight (default/rarest first)
+        if (sortBy === 'weight') {
+            const rA = RARITIES.indexOf(a.rarity as any);
+            const rB = RARITIES.indexOf(b.rarity as any);
+            // Higher rarity rank first (Arcana > Immortal)
+            if (rA !== rB) return sortOrder === 'asc' ? rB - rA : rA - rB;
+            // Then lower weight first if rarity is same
+            if (a.weight !== b.weight) return sortOrder === 'asc' ? a.weight - b.weight : b.weight - a.weight;
+            return 0;
+        }
+
+        let valA, valB;
+        if (sortBy === 'rarity') {
+            valA = RARITIES.indexOf(a.rarity);
+            valB = RARITIES.indexOf(b.rarity);
+        } else if (sortBy === 'price') {
+            valA = a.sellPrice || 0;
+            valB = b.sellPrice || 0;
+        } else {
+            valA = a.name.toLowerCase();
+            valB = b.name.toLowerCase();
+        }
+
+        if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+        if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+    });
+
     const filteredLibItems = globalItems.filter(item =>
         item.name.toLowerCase().includes(libSearch.toLowerCase())
     );
@@ -117,115 +208,231 @@ export default function CaseItemsPage() {
                     <span className="text-[11px] font-black uppercase tracking-widest">Выбрать из библиотеки</span>
                 </button>
 
-                {/* Form to add item */}
-                <div className="dota-card p-6 border-dashed border-white/10 bg-transparent flex flex-col gap-4">
-                    <h3 className="text-[10px] font-black text-white/40 uppercase tracking-widest">Или создать новый</h3>
+                {/* Form to add/edit item */}
+                <div className={`dota-card p-6 border-dashed bg-transparent flex flex-col gap-4 transition-all ${editingReward ? 'border-[var(--accent)] ring-1 ring-[var(--accent)]/20 shadow-[0_0_20px_rgba(var(--accent-rgb),0.1)]' : 'border-white/10'}`}>
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+                            {editingReward ? 'Редактировать предмет' : 'Создать предмет в кейсе'}
+                        </h3>
+                        {editingReward && (
+                            <button onClick={resetForm} className="text-[10px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1">
+                                <X size={12} /> Отмена
+                            </button>
+                        )}
+                    </div>
 
-                    <div className="flex flex-col gap-3">
-                        <input
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="Название предмета"
-                            className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm text-white outline-none focus:border-[var(--accent)]/50"
-                        />
-                        <div className="grid grid-cols-2 gap-3">
-                            <select
-                                value={rarity}
-                                onChange={(e) => setRarity(e.target.value)}
-                                className="h-12 bg-white/5 border border-white/10 rounded-xl px-3 text-xs text-white outline-none appearance-none"
-                            >
-                                {RARITIES.map(r => <option key={r} value={r}>{r}</option>)}
-                            </select>
+                    <div className="flex flex-col gap-5">
+                        <div className="flex flex-col gap-3">
+                            <label className="text-xs font-black text-white/40 uppercase tracking-widest px-2">Название предмета</label>
                             <input
-                                type="number"
-                                value={weight}
-                                onChange={(e) => setWeight(e.target.value)}
-                                placeholder="Шанс (вес)"
-                                className="h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm text-white outline-none focus:border-[var(--accent)]/50"
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Название предмета"
+                                className="w-full h-14 bg-white/5 border border-white/10 rounded-xl px-6 text-white text-base focus:border-[var(--accent)]/50 outline-none transition-all"
                             />
                         </div>
-                        <input
-                            type="number"
-                            value={sellPrice}
-                            onChange={(e) => setSellPrice(e.target.value)}
-                            placeholder="Цена продажи (опционально)"
-                            className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm text-white outline-none focus:border-[var(--accent)]/50"
-                        />
-                        <input
-                            type="text"
-                            value={image}
-                            onChange={(e) => setImage(e.target.value)}
-                            placeholder="URL картинки (опционально)"
-                            className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-sm text-white outline-none focus:border-[var(--accent)]/50"
-                        />
-                        <button
-                            onClick={handleAdd}
-                            disabled={isSaving}
-                            className="steam-bevel h-12 flex items-center justify-center gap-2 mt-2 bg-[var(--accent)] text-white"
-                        >
-                            {isSaving ? (
-                                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                            ) : (
-                                <>
-                                    <Plus size={18} />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">Добавить в кейс</span>
-                                </>
-                            )}
-                        </button>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="flex flex-col gap-3">
+                                <label className="text-xs font-black text-white/40 uppercase tracking-widest px-2">Редкость</label>
+                                <div className="relative">
+                                    <select
+                                        value={rarity}
+                                        onChange={(e) => setRarity(e.target.value)}
+                                        className="w-full h-14 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-base focus:border-[var(--accent)]/50 outline-none appearance-none"
+                                    >
+                                        {RARITIES.map(r => <option key={r} value={r}>{r}</option>)}
+                                    </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-20">
+                                        <Filter size={14} />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-3">
+                                <label className="text-xs font-black text-white/40 uppercase tracking-widest px-2">Шанс (вес)</label>
+                                <div className="relative group">
+                                    <input
+                                        type="number"
+                                        value={weight}
+                                        onChange={handleWeightChange}
+                                        className={`w-full h-14 bg-white/5 border rounded-xl px-6 pr-12 text-white text-base outline-none focus:border-[var(--accent)]/50 transition-all ${isAutoWeight ? 'border-green-500/30' : 'border-white/10'}`}
+                                    />
+                                    <button
+                                        onClick={toggleAutoWeight}
+                                        className={`absolute right-4 top-1/2 -translate-y-1/2 transition-colors z-10 ${isAutoWeight ? 'text-green-500' : 'text-white/20 hover:text-white/40'}`}
+                                        title={isAutoWeight ? 'Авто-расчет включен' : 'Включить авто-расчет'}
+                                    >
+                                        <Wand2 size={16} />
+                                    </button>
+                                    {isAutoWeight && (
+                                        <span className="absolute -top-2 left-4 px-1.5 py-0.5 bg-green-500 text-black text-[7px] font-black rounded-sm uppercase tracking-tighter pointer-events-none">
+                                            AUTO
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                            <label className="text-xs font-black text-white/40 uppercase tracking-widest px-2">Цена выкупа (BP)</label>
+                            <input
+                                type="number"
+                                value={sellPrice}
+                                onChange={handlePriceChange}
+                                placeholder="Цена выкупа (опционально)"
+                                className="w-full h-14 bg-white/5 border border-white/10 rounded-xl px-6 text-white text-base focus:border-[var(--accent)]/50 outline-none"
+                            />
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                            <label className="text-xs font-black text-white/40 uppercase tracking-widest px-2">Картинка (URL)</label>
+                            <input
+                                type="text"
+                                value={image}
+                                onChange={(e) => setImage(e.target.value)}
+                                placeholder="https://..."
+                                className="w-full h-14 bg-white/5 border border-white/10 rounded-xl px-6 text-white text-base focus:border-[var(--accent)]/50 outline-none"
+                            />
+                        </div>
+
+                        {editingReward ? (
+                            <button
+                                onClick={handleSaveEdit}
+                                disabled={isSaving}
+                                className="steam-bevel h-14 flex items-center justify-center gap-2 mt-2 bg-green-600 text-white active:translate-y-[1px]"
+                            >
+                                {isSaving ? (
+                                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                    <>
+                                        <Save size={18} />
+                                        <span className="text-[11px] font-black uppercase tracking-widest">Сохранить изменения</span>
+                                    </>
+                                )}
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleAdd}
+                                disabled={isSaving}
+                                className="steam-bevel h-16 flex items-center justify-center gap-2 mt-2 bg-[var(--accent)] text-white active:translate-y-[1px] shadow-lg shadow-black/20"
+                            >
+                                {isSaving ? (
+                                    <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                    <>
+                                        <Plus size={20} />
+                                        <span className="text-[11px] font-black uppercase tracking-widest">Добавить в кейс</span>
+                                    </>
+                                )}
+                            </button>
+                        )}
                     </div>
                 </div>
 
-                {/* Items List */}
-                <div className="flex flex-col gap-3">
-                    <h3 className="text-[10px] font-black text-white/40 uppercase tracking-widest px-2">Список предметов ({rewards.length})</h3>
+                {/* Sorting & Filters */}
+                <div className="flex flex-col gap-4 px-2">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-[10px] font-black text-white/40 uppercase tracking-widest">Список предметов ({rewards.length})</h3>
+                        <TrendingUp size={14} className="text-white/20" />
+                    </div>
 
-                    {isLoading ? (
-                        <div className="h-20 bg-white/5 animate-pulse rounded-2xl" />
-                    ) : rewards.length === 0 ? (
-                        <div className="text-center py-10 opacity-20 flex flex-col items-center gap-2">
-                            <Package size={32} />
-                            <p className="text-[10px] font-black uppercase tracking-widest">Пусто</p>
-                        </div>
-                    ) : (
-                        rewards.map((reward) => (
-                            <div key={reward.id} className="steam-bevel p-4 flex items-center gap-4 bg-white/[0.02]">
-                                <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center steam-emboss">
-                                    <Package size={24} className="opacity-20" />
+                    <div className="flex items-center gap-3 p-1.5 bg-white/5 rounded-xl border border-white/10 overflow-x-auto no-scrollbar">
+                        {[
+                            { id: 'weight-asc', label: 'Редкие выше', icon: ArrowUpDown },
+                            { id: 'weight-desc', label: 'Частые выше', icon: ArrowUpDown },
+                            { id: 'price-desc', label: 'Цена (↓)', icon: TrendingUp },
+                            { id: 'name-asc', label: 'А-Я', icon: Search },
+                        ].map((option) => {
+                            const isActive = `${sortBy}-${sortOrder}` === option.id ||
+                                (option.id === 'rarity-desc' && sortBy === 'rarity') ||
+                                (option.id === 'price-desc' && sortBy === 'price') ||
+                                (option.id === 'name-asc' && sortBy === 'name');
+
+                            return (
+                                <button
+                                    key={option.id}
+                                    onClick={() => {
+                                        const [b, o] = option.id.split('-') as [any, any];
+                                        setSortBy(b);
+                                        setSortOrder(o || 'desc');
+                                    }}
+                                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg whitespace-nowrap transition-all ${isActive ? 'bg-white text-black' : 'text-white/40 hover:text-white/60'}`}
+                                >
+                                    <option.icon size={12} className={isActive ? 'text-black' : 'text-white/20'} />
+                                    <span className="text-[9px] font-black uppercase tracking-widest">{option.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {isLoading ? (
+                    <div className="h-20 bg-white/5 animate-pulse rounded-2xl" />
+                ) : rewards.length === 0 ? (
+                    <div className="text-center py-10 opacity-20 flex flex-col items-center gap-2">
+                        <Package size={32} />
+                        <p className="text-[10px] font-black uppercase tracking-widest">Пусто</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                        {sortedRewards.map((reward) => (
+                            <div key={reward.id} className="steam-bevel p-3 flex flex-col gap-3 bg-white/[0.02] relative group overflow-hidden">
+                                <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                    <button
+                                        onClick={() => handleEdit(reward)}
+                                        className="w-7 h-7 rounded-md bg-white/10 text-white/60 flex items-center justify-center hover:bg-white/20 active:scale-90 transition-all border border-white/10"
+                                    >
+                                        <Edit2 size={12} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(reward.id)}
+                                        className="w-7 h-7 rounded-md bg-red-500/10 text-red-500/60 flex items-center justify-center hover:bg-red-500/20 active:scale-90 transition-all border border-red-500/20"
+                                    >
+                                        <Trash2 size={12} />
+                                    </button>
                                 </div>
-                                <div className="flex-1">
-                                    <h4 className="font-bold text-white text-sm uppercase tracking-tight">{reward.name}</h4>
-                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[9px] font-black uppercase mt-1">
-                                        <span className={RARITY_COLORS[reward.rarity]}>{reward.rarity}</span>
-                                        <span className="text-gray-700">•</span>
-                                        <span className="text-gray-500">Вес: {reward.weight}</span>
+
+                                <div className="aspect-square w-full rounded-lg bg-white/5 flex items-center justify-center steam-emboss relative">
+                                    {reward.image ? (
+                                        <img src={reward.image} alt={reward.name} className="w-full h-full object-contain p-2" />
+                                    ) : (
+                                        <Package size={24} className="opacity-10" />
+                                    )}
+                                    <div className="absolute top-1 left-1">
+                                        <span className={`text-[7px] font-black uppercase px-1.5 py-0.5 rounded-sm ${getRarityColor(reward.rarity)}`}>
+                                            {reward.rarity}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="flex-1 flex flex-col gap-1">
+                                    <h4 className="font-bold text-white text-[10px] uppercase tracking-tight truncate leading-tight">{reward.name}</h4>
+                                    <div className="flex flex-col gap-0.5 mt-auto">
+                                        <div className="flex items-center justify-between text-[8px] font-black uppercase text-white/40">
+                                            <span>Шанс:</span>
+                                            <span className="text-white/60">{reward.weight}</span>
+                                        </div>
                                         {reward.sellPrice && (
-                                            <>
-                                                <span className="text-gray-700">•</span>
-                                                <span className="text-green-500/70">Выкуп: {reward.sellPrice} BP</span>
-                                            </>
+                                            <div className="flex items-center justify-between text-[8px] font-black uppercase">
+                                                <span className="text-white/30">Выкуп:</span>
+                                                <span className="text-green-500/60">{reward.sellPrice} BP</span>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => handleDelete(reward.id)}
-                                    className="w-10 h-10 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20 active:scale-90 transition-transform"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
                             </div>
-                        ))
-                    )}
-                </div>
+                        ))}
+                    </div>
+                )}
+            </div>
 
-                {/* Info */}
-                <div className="bg-white/5 rounded-2xl p-4 border border-white/5 flex gap-3 text-gray-500 items-start">
-                    <TrendingUp size={20} className="shrink-0" />
-                    <p className="text-[10px] uppercase font-bold leading-relaxed">
-                        Вес определяет вероятность выпадения. <br />
-                        Шанс = (Вес предмета) / (Сумма всех весов в кейсе) * 100%
-                    </p>
-                </div>
+            {/* Info */}
+            <div className="bg-white/5 rounded-2xl p-4 border border-white/5 flex gap-3 text-gray-500 items-start">
+                <TrendingUp size={20} className="shrink-0" />
+                <p className="text-[10px] uppercase font-bold leading-relaxed">
+                    Вес определяет вероятность выпадения. <br />
+                    Шанс = (Вес предмета) / (Сумма всех весов в кейсе) * 100%
+                </p>
             </div>
             {/* Library Modal */}
             <AnimatePresence>
@@ -271,7 +478,7 @@ export default function CaseItemsPage() {
                                 >
                                     <div className="flex flex-col">
                                         <span className="text-[11px] font-bold text-white">{item.name}</span>
-                                        <span className={`text-[8px] font-black uppercase ${RARITY_COLORS[item.rarity]}`}>{item.rarity}</span>
+                                        <span className={`text-[8px] font-black uppercase ${getRarityColor(item.rarity)}`}>{item.rarity}</span>
                                     </div>
                                     <Plus size={14} className="text-white/20" />
                                 </button>

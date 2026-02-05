@@ -1,16 +1,23 @@
 import { Telegraf, Markup } from 'telegraf';
 import 'dotenv/config';
 
+console.log('🚀 Starting bot process...');
+
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const webAppUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://your-app.trycloudflare.com';
 
 if (!token) {
-    console.error('TELEGRAM_BOT_TOKEN is not defined in .env');
+    console.error('❌ TELEGRAM_BOT_TOKEN is not defined in .env');
     process.exit(1);
 }
 
+console.log(`✅ Token loaded: ${token.substring(0, 4)}...${token.substring(token.length - 4)}`);
+console.log(`🌐 WebApp URL: ${webAppUrl}`);
+
+console.log('📦 Initializing Telegraf...');
 const bot = new Telegraf(token);
 
+console.log('⚙️ Setting up bot commands...');
 bot.start(async (ctx) => {
     const startPayload = ctx.payload; // Capture the code after /start
     const appUrlWithParam = startPayload ? `${webAppUrl}?startapp=${startPayload}` : webAppUrl;
@@ -35,10 +42,11 @@ bot.start(async (ctx) => {
     );
 });
 
+console.log('🚀 Calling bot.launch()...');
 bot.launch().then(() => {
     console.log('🤖 Бот запущен и готов к работе!');
 }).catch((err) => {
-    console.error('Ошибка запуска бота:', err);
+    console.error('❌ Ошибка запуска бота:', err);
 });
 
 // Enable graceful stop

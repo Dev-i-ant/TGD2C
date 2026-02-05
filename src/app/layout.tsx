@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
 
-const inter = Inter({ subsets: ["latin", "cyrillic"] });
+// Using system fonts to avoid build failures in restricted networks
 
 export const metadata: Metadata = {
   title: "Dota 2 Case Opening TMA",
@@ -29,7 +28,7 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
       </head>
-      <body className={`${inter.className} min-h-screen antialiased`}>
+      <body className="min-h-screen antialiased">
         <ThemeProvider>
           <LanguageProvider>
             <TelegramProvider>

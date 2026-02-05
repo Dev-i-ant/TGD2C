@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Package, Search } from 'lucide-react';
 import Link from 'next/link';
 import { getCases } from '../admin/cases/actions';
-import { RARITY_TEXT_COLORS } from '@/lib/constants';
+import { getRarityRank, getRarityTextColor } from '@/lib/constants';
 
 import { useTranslation } from '@/components/LanguageProvider';
 
@@ -57,7 +57,7 @@ export default function CasesPage() {
                                     )}
                                 </div>
                                 <div className="flex-1">
-                                    <div className={`text-[9px] font-black uppercase tracking-widest mb-0.5 ${RARITY_TEXT_COLORS[item.rarity] || 'text-[var(--foreground)]/40'}`}>{item.rarity}</div>
+                                    <div className={`text-[9px] font-black uppercase tracking-widest mb-0.5 ${getRarityTextColor(item.rarity)}`}>{item.rarity}</div>
                                     <h3 className="font-bold text-sm text-[var(--foreground)] mb-2 uppercase tracking-tight">{item.name}</h3>
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-1.5">

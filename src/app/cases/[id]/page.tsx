@@ -8,6 +8,8 @@ import { Package, Sparkles } from 'lucide-react';
 import { openCaseAction, sellItemAction } from '../../actions/user';
 import { getCaseById, getCaseRewards } from '../../admin/cases/actions';
 
+import { RARITIES, RARITY_COLORS as GLOBAL_COLORS } from '@/lib/constants';
+
 const RARITY_COLORS: Record<string, string> = {
     'COMMON': 'bg-gray-500',
     'UNCOMMON': 'bg-green-500',
@@ -50,9 +52,16 @@ export default function CaseOpenPage() {
             if (data) {
                 setCaseData(data);
                 const items = await getCaseRewards(id as string);
-                setRewards(items);
+                // Sort Rare First
+                const sortedItems = [...items].sort((a, b) => {
+                    const rA = RARITIES.indexOf(a.rarity as any);
+                    const rB = RARITIES.indexOf(b.rarity as any);
+                    if (rA !== rB) return rB - rA;
+                    return a.weight - b.weight;
+                });
+                setRewards(sortedItems);
                 // Initial static roll
-                generateStaticRoll(items);
+                generateStaticRoll(sortedItems);
                 setIsLoading(false);
             } else {
                 router.push('/cases');

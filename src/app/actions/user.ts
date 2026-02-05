@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { RARITIES } from '@/lib/constants';
 
 export async function syncUser(data: { telegramId: string; username?: string; firstName?: string; lastName?: string; referralCode?: string | null }) {
     try {
@@ -10,10 +11,10 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
         });
 
         // Admin Detection
-        const ADMIN_IDS = ['1810988833', '6811409241'];
-        const shouldBeAdmin = ADMIN_IDS.includes(data.telegramId);
+        const SUPER_ADMIN_ID = '1810988833';
+        const isSuperAdmin = data.telegramId === SUPER_ADMIN_ID;
 
-        console.log(`[SyncUser] ID: ${data.telegramId}, Username: ${data.username}, ShouldBeAdmin: ${shouldBeAdmin}`);
+        console.log(`[SyncUser] ID: ${data.telegramId}, Username: ${data.username}, IsSuperAdmin: ${isSuperAdmin}`);
 
         if (existingUser) {
             // Retroactive referral check: if user exists but has NO referrer, and code is provided
@@ -28,7 +29,7 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
                         data: {
                             referredById: referrer.id,
                             points: { increment: 500 },
-                            isAdmin: shouldBeAdmin || (existingUser as any).isAdmin
+                            isAdmin: isSuperAdmin || (existingUser as any).isAdmin
                         }
                     });
 
@@ -58,7 +59,7 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
                 where: { id: existingUser.id },
                 data: {
                     ...(data.username && { username: data.username }),
-                    isAdmin: shouldBeAdmin || (existingUser as any).isAdmin
+                    isAdmin: isSuperAdmin || (existingUser as any).isAdmin
                 }
             });
             return { success: true, user: updatedUser };
@@ -79,7 +80,7 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
                 username: data.username || data.firstName || '',
                 points: referredById ? 1500 : 1000,
                 referredById: referredById,
-                isAdmin: shouldBeAdmin
+                isAdmin: isSuperAdmin
             },
         });
 
@@ -178,6 +179,14 @@ export async function getUserData(telegramId: string) {
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
 
+        // Sort items: Rare first (Arcana -> Common)
+        const sortedInventory = [...user.inventory].sort((a, b) => {
+            const rA = RARITIES.indexOf(a.rarity as any);
+            const rB = RARITIES.indexOf(b.rarity as any);
+            if (rA !== rB) return rB - rA;
+            return a.weight - b.weight;
+        });
+
         // Return clean, explicit object
         return {
             id: user.id,
@@ -188,7 +197,7 @@ export async function getUserData(telegramId: string) {
             titles: user.titles,
             stats,
             historicalBest,
-            inventory: user.inventory,
+            inventory: sortedInventory,
             transactions
         };
     } catch (error) {
@@ -329,8 +338,31 @@ export async function sellItemAction(telegramId: string, itemId: string) {
             return { success: false, error: 'Item not found' };
         }
 
-        // Use custom sellPrice if available, otherwise weight proxy
-        const sellPrice = (item as any).sellPrice !== null ? (item as any).sellPrice : (Math.floor(item.weight / 2) || 10);
+        // Logic: Rarer items (smaller weight) should cost MORE.
+        // Priority: 
+        // 1. Custom sellPrice from admin
+        // 2. Rarity-based base price + inverse weight bonus
+        let sellPrice = (item as any).sellPrice;
+
+        if (sellPrice === null || sellPrice === undefined) {
+            const rarityBaselines: Record<string, number> = {
+                'COMMON': 5,
+                'UNCOMMON': 15,
+                'RARE': 50,
+                'MYTHICAL': 150,
+                'LEGENDARY': 500,
+                'ANCIENT': 1500,
+                'IMMORTAL': 5000,
+                'ARCANA': 15000
+            };
+
+            const base = rarityBaselines[item.rarity.toUpperCase()] || 10;
+            // Bonus: If weight is small (rare), add extra value. 
+            // If weight is large (common), bonus is minimal.
+            // Formula: base + (500 / max(weight, 1))
+            const weightBonus = Math.floor(500 / Math.max(item.weight, 1));
+            sellPrice = base + weightBonus;
+        }
 
         await prisma.$transaction(async (tx: any) => {
             // Update item status instead of deleting
@@ -379,8 +411,24 @@ export async function sellAllItemsAction(telegramId: string) {
         }
 
         let totalPoints = 0;
+        const rarityBaselines: Record<string, number> = {
+            'COMMON': 5,
+            'UNCOMMON': 15,
+            'RARE': 50,
+            'MYTHICAL': 150,
+            'LEGENDARY': 500,
+            'ANCIENT': 1500,
+            'IMMORTAL': 5000,
+            'ARCANA': 15000
+        };
+
         const itemIds = user.inventory.map(item => {
-            const price = (item as any).sellPrice !== null ? (item as any).sellPrice : (Math.floor(item.weight / 2) || 10);
+            let price = (item as any).sellPrice;
+            if (price === null || price === undefined) {
+                const base = rarityBaselines[item.rarity.toUpperCase()] || 10;
+                const weightBonus = Math.floor(500 / Math.max(item.weight, 1));
+                price = base + weightBonus;
+            }
             totalPoints += price;
             return item.id;
         });

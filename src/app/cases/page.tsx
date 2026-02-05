@@ -49,9 +49,9 @@ export default function CasesPage() {
                             className="steam-bevel p-2"
                         >
                             <div className="flex items-center gap-4">
-                                <div className="w-20 h-20 steam-emboss p-1 flex items-center justify-center overflow-hidden">
+                                <div className="w-24 h-24 steam-emboss flex items-center justify-center overflow-hidden shrink-0">
                                     {item.image ? (
-                                        <img src={item.image} alt={item.name} className="w-full h-full object-cover grayscale-[0.2]" />
+                                        <img src={item.image} alt={item.name} className="w-full h-full object-contain" />
                                     ) : (
                                         <Package className="text-[var(--accent)]/30" size={32} />
                                     )}

@@ -334,16 +334,20 @@ export default function GlobalItemsPage() {
                     ) : (
                         <div className="grid grid-cols-2 gap-3">
                             {sortedItems.map((item) => (
-                                <div key={item.id} className="steam-bevel p-3 flex flex-col gap-3 bg-white/[0.02] relative group overflow-hidden">
+                                <div
+                                    key={item.id}
+                                    onClick={() => handleEdit(item)}
+                                    className="steam-bevel p-3 flex flex-col gap-3 bg-white/[0.02] relative group overflow-hidden cursor-pointer active:scale-[0.98] transition-all hover:bg-white/[0.04]"
+                                >
                                     <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                        <button
-                                            onClick={() => handleEdit(item)}
-                                            className="w-7 h-7 rounded-md bg-white/10 text-white/60 flex items-center justify-center hover:bg-white/20 active:scale-90 transition-all border border-white/10"
-                                        >
+                                        <div className="w-7 h-7 rounded-md bg-white/10 text-white/60 flex items-center justify-center border border-white/10">
                                             <Edit2 size={12} />
-                                        </button>
+                                        </div>
                                         <button
-                                            onClick={() => handleDelete(item.id)}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDelete(item.id);
+                                            }}
                                             className="w-7 h-7 rounded-md bg-red-500/10 text-red-500/60 flex items-center justify-center hover:bg-red-500/20 active:scale-90 transition-all border border-red-500/20"
                                         >
                                             <Trash2 size={12} />

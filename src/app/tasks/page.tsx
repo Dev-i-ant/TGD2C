@@ -11,12 +11,14 @@ import { useTranslation } from '@/components/LanguageProvider';
 export default function TasksPage() {
     const { t } = useTranslation();
     const [tasks, setTasks] = useState<any[]>([]);
-    const [taskStatus, setTaskStatus] = useState<Record<string, { lastCompletedAt: Date }>>({});
+    const [taskStatus, setTaskStatus] = useState<Record<string, { lastCompletedAt: string }>>({});
     const [isLoading, setIsLoading] = useState(true);
     const [claimingId, setClaimingId] = useState<string | null>(null);
     const [now, setNow] = useState(new Date());
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        setMounted(true);
         const interval = setInterval(() => setNow(new Date()), 1000);
         return () => clearInterval(interval);
     }, []);
@@ -32,7 +34,7 @@ export default function TasksPage() {
                         getUserTaskStatus(user.id.toString())
                     ]);
                     setTasks(allTasks);
-                    setTaskStatus(status as Record<string, { lastCompletedAt: Date }>);
+                    setTaskStatus(status as Record<string, { lastCompletedAt: string }>);
                 }
             }
             setIsLoading(false);
@@ -64,7 +66,7 @@ export default function TasksPage() {
             if (result.success) {
                 setTaskStatus(prev => ({
                     ...prev,
-                    [task.id]: { lastCompletedAt: new Date() }
+                    [task.id]: { lastCompletedAt: new Date().toISOString() }
                 }));
             } else {
                 alert(result.error);
@@ -73,7 +75,7 @@ export default function TasksPage() {
         setClaimingId(null);
     };
 
-    const getCountdown = (lastCompletedAt: Date) => {
+    const getCountdown = (lastCompletedAt: string) => {
         const last = new Date(lastCompletedAt);
         const next = new Date(last.getTime() + 24 * 60 * 60 * 1000);
         const diff = next.getTime() - now.getTime();
@@ -152,7 +154,7 @@ export default function TasksPage() {
                                     )}
                                     {isCompleted && countdown && (
                                         <div className="steam-bevel bg-black/20 h-8 px-3 flex items-center justify-center">
-                                            <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">{t.common.completed.toUpperCase()}</span>
+                                            <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">{t.tasks.completed.toUpperCase()}</span>
                                         </div>
                                     )}
                                 </div>

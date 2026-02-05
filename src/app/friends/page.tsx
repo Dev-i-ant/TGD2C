@@ -15,7 +15,7 @@ export default function FriendsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [copied, setCopied] = useState(false);
 
-    const botUsername = process.env.NEXT_PUBLIC_BOT_USERNAME || 'dota2_case_bot';
+    const botUsername = process.env.NEXT_PUBLIC_BOT_USERNAME || 'Open_My_Case_bot';
 
     useEffect(() => {
         async function load() {

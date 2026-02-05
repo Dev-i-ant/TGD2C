@@ -22,24 +22,51 @@ export async function getUserTaskStatus(userId: string) {
         });
 
         const now = new Date();
-        const statusMap: Record<string, { lastCompletedAt: Date }> = {};
+        const statusMap: Record<string, { lastCompletedAt: string }> = {};
 
         completedTasks.forEach(ut => {
             if (ut.task.type === 'DAILY') {
                 const lastCompleted = new Date((ut as any).updatedAt);
                 const diffHours = (now.getTime() - lastCompleted.getTime()) / (1000 * 60 * 60);
                 if (diffHours < 24) {
-                    statusMap[ut.taskId] = { lastCompletedAt: lastCompleted };
+                    statusMap[ut.taskId] = { lastCompletedAt: lastCompleted.toISOString() };
                 }
             } else {
-                statusMap[ut.taskId] = { lastCompletedAt: new Date(ut.completedAt) };
+                statusMap[ut.taskId] = { lastCompletedAt: new Date(ut.completedAt).toISOString() };
             }
         });
 
         return statusMap;
     } catch (error) {
         console.error('Failed to fetch user tasks:', error);
-        return [];
+        return {};
+    }
+}
+
+export async function checkDailyRewardAvailable(telegramId: string) {
+    try {
+        const user = await prisma.user.findUnique({ where: { telegramId } });
+        if (!user) return false;
+
+        const dailyTask = await prisma.task.findFirst({
+            where: { type: 'DAILY' }
+        });
+
+        if (!dailyTask) return false;
+
+        const userTask = await prisma.userTask.findUnique({
+            where: { userId_taskId: { userId: user.id, taskId: dailyTask.id } }
+        });
+
+        if (!userTask) return true; // Never claimed
+
+        const lastCompleted = new Date((userTask as any).updatedAt);
+        const diffHours = (new Date().getTime() - lastCompleted.getTime()) / (1000 * 60 * 60);
+
+        return diffHours >= 24;
+    } catch (error) {
+        console.error('Check daily reward error:', error);
+        return false;
     }
 }
 

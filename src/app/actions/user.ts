@@ -2,7 +2,44 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { RARITIES } from '@/lib/constants';
+import { RARITIES, getRarityRank, calculateEffectivePrice } from '@/lib/constants';
+
+export async function resetAllUserDataAction() {
+    try {
+        await prisma.$transaction([
+            // 1. Delete all user-owned rewards
+            prisma.reward.deleteMany({
+                where: { userId: { not: null } }
+            }),
+            // 2. Delete all transactions
+            prisma.transaction.deleteMany({}),
+            // 3. Reset user stats
+            prisma.user.updateMany({
+                data: {
+                    points: 1000,
+                    bestItemName: null,
+                    bestItemRarity: null,
+                    bestItemImage: null,
+                    bestItemWeight: 0,
+                    bestItemPrice: 0,
+                    referralCount: 0,
+                    referralEarnings: 0
+                }
+            })
+        ]);
+
+        revalidatePath('/');
+        revalidatePath('/profile');
+        revalidatePath('/inventory');
+        revalidatePath('/history');
+        revalidatePath('/leaderboard');
+
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to reset data:', error);
+        return { success: false, error: 'Database error' };
+    }
+}
 
 export async function syncUser(data: { telegramId: string; username?: string; firstName?: string; lastName?: string; referralCode?: string | null }) {
     try {
@@ -19,11 +56,17 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
         if (existingUser) {
             // Retroactive referral check: if user exists but has NO referrer, and code is provided
             if (!existingUser.referredById && data.referralCode && data.referralCode !== existingUser.id) {
-                const referrer = await prisma.user.findUnique({
-                    where: { id: data.referralCode }
+                const referrer = await prisma.user.findFirst({
+                    where: {
+                        OR: [
+                            { id: data.referralCode },
+                            { referralCode: data.referralCode }
+                        ]
+                    }
                 });
 
                 if (referrer) {
+                    console.log(`[syncUser] Found referrer ${referrer.id} for existing user ${existingUser.telegramId}`);
                     const updatedUser = await prisma.user.update({
                         where: { id: existingUser.id },
                         data: {
@@ -39,14 +82,25 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
                             data: {
                                 points: { increment: 500 },
                                 referralCount: { increment: 1 },
+                                referralEarnings: { increment: 500 },
                             }
                         }),
                         prisma.transaction.create({
                             data: {
                                 userId: referrer.id,
+                                fromUserId: updatedUser.id,
                                 amount: 500,
                                 type: 'REFERRAL_BONUS',
                                 description: `Бонус за приглашение игрока ${updatedUser.username || updatedUser.telegramId}`
+                            }
+                        }),
+                        prisma.transaction.create({
+                            data: {
+                                userId: updatedUser.id,
+                                fromUserId: referrer.id,
+                                amount: 500,
+                                type: 'REFERRAL_BONUS',
+                                description: `Бонус за вступление по приглашению`
                             }
                         })
                     ]);
@@ -54,11 +108,16 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
                 }
             }
 
+            // Safety: if existing user has 0 points but is active, ensure they have at least 1000 (starting balance)
+            // unless they've actually spent them all (hard to distinguish, but 0 is usually a sign of uninitialized)
+            const pointsToSet = existingUser.points === 0 ? 1000 : existingUser.points;
+
             // Standard info update + Admin check
             const updatedUser = await prisma.user.update({
                 where: { id: existingUser.id },
                 data: {
                     ...(data.username && { username: data.username }),
+                    points: pointsToSet,
                     isAdmin: isSuperAdmin || (existingUser as any).isAdmin
                 }
             });
@@ -68,8 +127,13 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
         // New User logic
         let referredById = null;
         if (data.referralCode) {
-            const referrer = await prisma.user.findUnique({
-                where: { id: data.referralCode }
+            const referrer = await prisma.user.findFirst({
+                where: {
+                    OR: [
+                        { id: data.referralCode },
+                        { referralCode: data.referralCode }
+                    ]
+                }
             });
             if (referrer) referredById = referrer.id;
         }
@@ -84,6 +148,8 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
             },
         });
 
+        console.log(`[syncUser] Created new user ${newUser.telegramId} with points ${newUser.points}. Referred by: ${referredById}`);
+
         if (referredById) {
             await prisma.$transaction([
                 prisma.user.update({
@@ -91,19 +157,22 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
                     data: {
                         points: { increment: 500 },
                         referralCount: { increment: 1 },
+                        referralEarnings: { increment: 500 },
                     }
                 }),
                 prisma.transaction.create({
                     data: {
                         userId: referredById,
+                        fromUserId: newUser.id,
                         amount: 500,
                         type: 'REFERRAL_BONUS',
-                        description: `Бонус: ${newUser.username || newUser.telegramId}`
+                        description: `${newUser.username || newUser.telegramId}: Бонус за вступление`
                     }
                 }),
                 prisma.transaction.create({
                     data: {
                         userId: newUser.id,
+                        fromUserId: referredById,
                         amount: 500,
                         type: 'REFERRAL_BONUS',
                         description: `Бонус за вступление по приглашению`
@@ -135,21 +204,34 @@ export async function getUserData(telegramId: string) {
 
         // --- Safe Self-healing ---
         try {
-            if (!user.bestItemName && user.inventory.length > 0) {
-                const bestInInv = user.inventory[0];
+            if ((!user.bestItemName || (user as any).bestItemPrice === 0) && user.inventory.length > 0) {
+                // Find most expensive item in inventory
+                let recordItem = user.inventory[0];
+                let maxPrice = 0;
+
+                for (const item of user.inventory) {
+                    const price = calculateEffectivePrice(item.rarity, item.weight, item.sellPrice);
+                    if (price > maxPrice) {
+                        maxPrice = price;
+                        recordItem = item;
+                    }
+                }
+
                 await prisma.user.update({
                     where: { id: user.id },
                     data: {
-                        bestItemName: bestInInv.name,
-                        bestItemRarity: bestInInv.rarity,
-                        bestItemImage: bestInInv.image,
-                        bestItemWeight: bestInInv.weight
+                        bestItemName: recordItem.name,
+                        bestItemRarity: recordItem.rarity,
+                        bestItemImage: recordItem.image,
+                        bestItemWeight: recordItem.weight,
+                        bestItemPrice: maxPrice
                     }
                 });
-                user.bestItemName = bestInInv.name;
-                user.bestItemRarity = bestInInv.rarity;
-                user.bestItemImage = bestInInv.image;
-                user.bestItemWeight = bestInInv.weight;
+                user.bestItemName = recordItem.name;
+                user.bestItemRarity = recordItem.rarity;
+                user.bestItemImage = recordItem.image;
+                user.bestItemWeight = recordItem.weight;
+                (user as any).bestItemPrice = maxPrice;
             }
         } catch (healErr) {
             console.error('Self-healing failed but continuing:', healErr);
@@ -268,9 +350,10 @@ export async function openCaseAction(telegramId: string, caseId: string) {
                     await tx.transaction.create({
                         data: {
                             userId: user.referredById,
+                            fromUserId: user.id,
                             amount: commission,
                             type: 'REFERRAL_COMMISSION',
-                            description: `Доход от друга: ${caseData.name}`,
+                            description: `${user.username || user.telegramId}: ${caseData.name}`,
                         }
                     });
                 }
@@ -299,15 +382,19 @@ export async function openCaseAction(telegramId: string, caseId: string) {
                 }
             });
 
-            // Update historical record if this drop is better
-            if (winner.weight > (user.bestItemWeight || 0)) {
+            // Update historical record if this drop is better (Price-based)
+            const winnerPrice = calculateEffectivePrice(winner.rarity, winner.weight, winner.sellPrice);
+            const userBestPrice = (user as any).bestItemPrice || 0;
+
+            if (winnerPrice > userBestPrice) {
                 await tx.user.update({
                     where: { id: user.id },
                     data: {
                         bestItemName: winner.name,
                         bestItemRarity: winner.rarity,
                         bestItemImage: winner.image,
-                        bestItemWeight: winner.weight
+                        bestItemWeight: winner.weight,
+                        bestItemPrice: winnerPrice
                     }
                 });
             }
@@ -339,30 +426,7 @@ export async function sellItemAction(telegramId: string, itemId: string) {
         }
 
         // Logic: Rarer items (smaller weight) should cost MORE.
-        // Priority: 
-        // 1. Custom sellPrice from admin
-        // 2. Rarity-based base price + inverse weight bonus
-        let sellPrice = (item as any).sellPrice;
-
-        if (sellPrice === null || sellPrice === undefined) {
-            const rarityBaselines: Record<string, number> = {
-                'COMMON': 5,
-                'UNCOMMON': 15,
-                'RARE': 50,
-                'MYTHICAL': 150,
-                'LEGENDARY': 500,
-                'ANCIENT': 1500,
-                'IMMORTAL': 5000,
-                'ARCANA': 15000
-            };
-
-            const base = rarityBaselines[item.rarity.toUpperCase()] || 10;
-            // Bonus: If weight is small (rare), add extra value. 
-            // If weight is large (common), bonus is minimal.
-            // Formula: base + (500 / max(weight, 1))
-            const weightBonus = Math.floor(500 / Math.max(item.weight, 1));
-            sellPrice = base + weightBonus;
-        }
+        const sellPrice = calculateEffectivePrice(item.rarity, item.weight, (item as any).sellPrice);
 
         await prisma.$transaction(async (tx: any) => {
             // Update item status instead of deleting
@@ -411,24 +475,8 @@ export async function sellAllItemsAction(telegramId: string) {
         }
 
         let totalPoints = 0;
-        const rarityBaselines: Record<string, number> = {
-            'COMMON': 5,
-            'UNCOMMON': 15,
-            'RARE': 50,
-            'MYTHICAL': 150,
-            'LEGENDARY': 500,
-            'ANCIENT': 1500,
-            'IMMORTAL': 5000,
-            'ARCANA': 15000
-        };
-
         const itemIds = user.inventory.map(item => {
-            let price = (item as any).sellPrice;
-            if (price === null || price === undefined) {
-                const base = rarityBaselines[item.rarity.toUpperCase()] || 10;
-                const weightBonus = Math.floor(500 / Math.max(item.weight, 1));
-                price = base + weightBonus;
-            }
+            const price = calculateEffectivePrice(item.rarity, item.weight, (item as any).sellPrice);
             totalPoints += price;
             return item.id;
         });

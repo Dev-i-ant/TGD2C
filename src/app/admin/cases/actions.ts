@@ -90,7 +90,8 @@ export async function deleteCase(id: string) {
         return { success: true };
     } catch (error) {
         console.error('Failed to delete case:', error);
-        return { success: false, error: 'Ошибка при удалении кейса' };
+        const errMsg = error instanceof Error ? error.message : 'Unknown error';
+        return { success: false, error: `Ошибка при удалении кейса: ${errMsg}` };
     }
 }
 
@@ -173,7 +174,8 @@ export async function deleteReward(rewardId: string, caseId: string) {
         return { success: true };
     } catch (error) {
         console.error('Failed to delete reward:', error);
-        return { success: false, error: 'Ошибка при удалении предмета' };
+        const errMsg = error instanceof Error ? error.message : 'Unknown error';
+        return { success: false, error: `Ошибка при удалении предмета: ${errMsg}` };
     }
 }
 
@@ -268,7 +270,7 @@ export async function addRewardFromLibrary(caseId: string, globalItemId: string,
                 rarity: globalItem.rarity,
                 image: globalItem.image,
                 sellPrice: globalItem.sellPrice,
-                weight: weight || globalItem.defaultWeight || 100,
+                weight: weight || (globalItem as any).defaultWeight || 100,
                 caseId: caseId,
             },
         });

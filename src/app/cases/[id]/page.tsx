@@ -208,10 +208,14 @@ export default function CaseOpenPage() {
                     <motion.div
                         animate={isOpening ? { rotate: [0, -2, 2, -2, 2, 0], scale: [1, 1.05, 1] } : {}}
                         transition={{ repeat: Infinity, duration: 0.3 }}
-                        className="w-32 h-32 steam-emboss p-2 flex items-center justify-center relative overflow-hidden mx-auto shadow-[0_0_30px_rgba(255,255,255,0.05)]"
+                        className="w-40 h-40 steam-emboss p-2 flex items-center justify-center relative overflow-hidden mx-auto shadow-[0_0_30px_rgba(255,255,255,0.05)]"
                     >
                         <div className="absolute inset-0 bg-black/10" />
-                        <Package size={64} className={`${caseData?.color?.replace('bg-', 'text-') || 'text-[var(--accent)]'} relative z-10 opacity-70`} />
+                        {caseData?.image ? (
+                            <img src={caseData.image} alt={caseData.name} className="w-full h-full object-contain relative z-10 scale-110 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]" />
+                        ) : (
+                            <Package size={64} className={`${caseData?.color?.replace('bg-', 'text-') || 'text-[var(--accent)]'} relative z-10 opacity-70`} />
+                        )}
                     </motion.div>
                 </section>
 

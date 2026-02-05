@@ -58,8 +58,12 @@ export default function AdminCases() {
                     ) : (
                         cases.map((c) => (
                             <div key={c.id} className="steam-bevel p-3 flex items-center gap-4">
-                                <div className={`w-12 h-12 steam-emboss flex items-center justify-center`}>
-                                    <Package size={20} className={c.color.replace('bg-', 'text-').replace('color-', 'text-')} />
+                                <div className={`w-14 h-14 steam-emboss flex items-center justify-center relative overflow-hidden shrink-0 p-1`}>
+                                    {c.image ? (
+                                        <img src={c.image} alt={c.name} className="w-full h-full object-contain grayscale-[0.3]" />
+                                    ) : (
+                                        <Package size={20} className={c.color.replace('bg-', 'text-').replace('color-', 'text-')} />
+                                    )}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <h4 className="font-black text-[var(--foreground)] text-[11px] truncate uppercase tracking-tighter">{c.name}</h4>

@@ -7,16 +7,19 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getCases } from './admin/cases/actions';
 import { syncUser } from './actions/user';
+import { checkDailyRewardAvailable } from './actions/tasks';
 import { useTranslation } from '@/components/LanguageProvider';
 
 export default function Home() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [points, setPoints] = useState(0);
   const [username, setUsername] = useState(t.common.loading);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [featuredCase, setFeaturedCase] = useState<any>(null);
+  const [isPrizeAvailable, setIsPrizeAvailable] = useState(false);
+  const [isLoadingPoints, setIsLoadingPoints] = useState(true);
 
   useEffect(() => {
     async function init() {
@@ -47,7 +50,12 @@ export default function Home() {
           if (result.success && result.user) {
             setPoints(result.user.points);
             setUsername(`${user.first_name}${user.last_name ? ' ' + user.last_name : ''}`);
+
+            // 3. Check Prize availability
+            const prizeAvailable = await checkDailyRewardAvailable(user.id.toString());
+            setIsPrizeAvailable(prizeAvailable);
           }
+          setIsLoadingPoints(false);
         }
       }
     }
@@ -61,13 +69,23 @@ export default function Home() {
     <div className="flex flex-col gap-6 p-6 pb-24 pt-[calc(6.5rem+env(safe-area-inset-top))]">
       {/* Header / Profile */}
       <section className="flex items-center justify-between steam-bevel p-4 mx-0">
-        <div>
-          <h1 className="text-sm font-black text-[var(--foreground)] steam-header-text">
-            {username}
-          </h1>
+        <div className="flex-1">
+          <div className="flex items-center justify-between">
+            <h1 className="text-sm font-black text-[var(--foreground)] steam-header-text">
+              {username}
+            </h1>
+            {isPrizeAvailable && (
+              <button
+                onClick={() => router.push('/tasks')}
+                className="steam-bevel bg-[var(--accent)] text-white px-3 py-1 uppercase font-black text-[9px] active:translate-y-[1px] transition-none animate-in fade-in zoom-in"
+              >
+                🏆 {language === 'ru' ? 'твой приз' : 'your prize'}
+              </button>
+            )}
+          </div>
           <p className="steam-header-text text-[var(--foreground)]/40 text-[9px] mt-0.5 opacity-50">{t.common.status_online}</p>
         </div>
-        <div className="w-10 h-10 steam-emboss p-1 flex items-center justify-center overflow-hidden">
+        <div className="w-10 h-10 steam-emboss p-1 flex items-center justify-center overflow-hidden shrink-0 ml-4">
           {photoUrl ? (
             <img src={photoUrl} alt={username} className="w-full h-full object-cover grayscale-[0.2]" />
           ) : (
@@ -90,8 +108,8 @@ export default function Home() {
           ))}
         </div>
         <span className="steam-header-text text-[var(--foreground)]/40 text-[9px] relative z-10">{t.home.network_balance}</span>
-        <div className="text-3xl font-black text-[var(--foreground)] flex items-center gap-2 relative z-10">
-          {points} <span className="text-[var(--accent)] text-xl">{t.common.bp}</span>
+        <div className={`text-3xl font-black text-[var(--foreground)] flex items-center gap-2 relative z-10 ${isLoadingPoints ? 'animate-pulse opacity-40' : ''}`}>
+          {isLoadingPoints ? '...' : points} <span className="text-[var(--accent)] text-xl">{t.common.bp}</span>
         </div>
         <button
           onClick={() => router.push('/history')}
@@ -134,9 +152,13 @@ export default function Home() {
             </h2>
           </div>
           <div className="steam-bevel p-2 flex gap-4 items-center">
-            <div className={`w-16 h-16 steam-emboss flex items-center justify-center relative overflow-hidden`}>
+            <div className={`w-18 h-18 steam-emboss flex items-center justify-center relative overflow-hidden shrink-0 p-1`}>
               <div className="absolute inset-0 bg-white/5" />
-              <Package size={32} className="text-[var(--accent)]/40 relative z-10" />
+              {featuredCase.image ? (
+                <img src={featuredCase.image} alt={featuredCase.name} className="w-full h-full object-contain relative z-10 drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]" />
+              ) : (
+                <Package size={32} className="text-[var(--accent)]/40 relative z-10" />
+              )}
             </div>
             <div className="flex-1">
               <h3 className="steam-header-text text-[var(--foreground)] text-xs tracking-tight">{featuredCase.name}</h3>

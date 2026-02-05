@@ -27,6 +27,7 @@ model User {
   bestItemRarity String?
   bestItemImage  String?
   bestItemWeight Int           @default(0)
+  bestItemPrice  Int           @default(0)
 
   // Titles & Customization
   titles           String?     // Comma-separated or JSON string for user badges
@@ -44,8 +45,9 @@ model Transaction {
   id          String   @id @default(cuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id])
+  fromUserId  String?  // Optional: The user who generated this transaction (e.g. friend)
   amount      Int
-  type        String // 'TASK_REWARD', 'CASE_OPEN', 'ADMIN_ADJUST'
+  type        String // 'TASK_REWARD', 'CASE_OPEN', 'ADMIN_ADJUST', 'REFERRAL_BONUS', 'REFERRAL_COMMISSION'
   description String
   createdAt   DateTime @default(now())
 }
@@ -95,7 +97,7 @@ model Reward {
   sellPrice Int?     // Optional custom sell price
   status    String   @default("IN_STOCK") // "IN_STOCK", "SOLD", "WITHDRAWN"
   caseId    String
-  case      Case     @relation(fields: [caseId], references: [id])
+  case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
   userId    String?
   owner     User?    @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())

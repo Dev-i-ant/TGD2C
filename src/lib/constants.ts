@@ -36,3 +36,22 @@ export const getRarityColor = (rarity: string): string => {
 export const getRarityTextColor = (rarity: string): string => {
     return RARITY_TEXT_COLORS[rarity as Rarity] || 'text-white/40';
 };
+
+export const RARITY_BASELINES: Record<string, number> = {
+    'COMMON': 5,
+    'UNCOMMON': 15,
+    'RARE': 50,
+    'MYTHICAL': 150,
+    'LEGENDARY': 500,
+    'ANCIENT': 1500,
+    'IMMORTAL': 5000,
+    'ARCANA': 15000
+};
+
+export const calculateEffectivePrice = (rarity: string, weight: number, customPrice?: number | null) => {
+    if (customPrice !== null && customPrice !== undefined && customPrice > 0) return customPrice;
+
+    const base = RARITY_BASELINES[rarity.toUpperCase()] || 10;
+    const weightBonus = Math.floor(500 / Math.max(weight, 1));
+    return base + weightBonus;
+};

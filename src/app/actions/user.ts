@@ -108,16 +108,11 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
                 }
             }
 
-            // Safety: if existing user has 0 points but is active, ensure they have at least 1000 (starting balance)
-            // unless they've actually spent them all (hard to distinguish, but 0 is usually a sign of uninitialized)
-            const pointsToSet = existingUser.points === 0 ? 1000 : existingUser.points;
-
             // Standard info update + Admin check
             const updatedUser = await prisma.user.update({
                 where: { id: existingUser.id },
                 data: {
                     ...(data.username && { username: data.username }),
-                    points: pointsToSet,
                     isAdmin: isSuperAdmin || (existingUser as any).isAdmin
                 }
             });
@@ -288,8 +283,10 @@ export async function getUserData(telegramId: string) {
     }
 }
 
-export async function openCaseAction(telegramId: string, caseId: string) {
+export async function openCaseAction(telegramId: string, caseId: string, count: number = 1) {
     try {
+        if (count < 1 || count > 5) return { success: false, error: 'Некорректное количество' };
+
         // 1. Get or create user
         const user = await prisma.user.upsert({
             where: { telegramId },
@@ -311,20 +308,26 @@ export async function openCaseAction(telegramId: string, caseId: string) {
         });
 
         if (!caseData) return { success: false, error: 'Кейс не найден' };
-        if (user.points < caseData.price) return { success: false, error: 'Недостаточно BP' };
+        const totalPrice = caseData.price * count;
+        if (user.points < totalPrice) return { success: false, error: 'Недостаточно BP' };
         if (caseData.rewards.length === 0) return { success: false, error: 'Кейс пуст' };
 
-        // 2. Select winner (Weight-based)
+        // 2. Select winners (Weight-based)
         const totalWeight = caseData.rewards.reduce((acc: number, r: any) => acc + r.weight, 0);
-        let randomNum = Math.random() * totalWeight;
-        let winner = caseData.rewards[0];
+        const winners: any[] = [];
 
-        for (const reward of caseData.rewards) {
-            if (randomNum < reward.weight) {
-                winner = reward;
-                break;
+        for (let c = 0; c < count; c++) {
+            let randomNum = Math.random() * totalWeight;
+            let winner = caseData.rewards[0];
+
+            for (const reward of caseData.rewards) {
+                if (randomNum < reward.weight) {
+                    winner = reward;
+                    break;
+                }
+                randomNum -= reward.weight;
             }
-            randomNum -= reward.weight;
+            winners.push(winner);
         }
 
         // 3. Transactional Update
@@ -332,12 +335,12 @@ export async function openCaseAction(telegramId: string, caseId: string) {
             // Deduct points
             const updatedUser = await tx.user.update({
                 where: { id: user.id },
-                data: { points: { decrement: caseData.price } },
+                data: { points: { decrement: totalPrice } },
             });
 
             // Commission Distribution
             if (user.referredById) {
-                const commission = Math.floor(caseData.price * 0.1);
+                const commission = Math.floor(totalPrice * 0.1);
                 if (commission > 0) {
                     await tx.user.update({
                         where: { id: user.referredById },
@@ -353,53 +356,65 @@ export async function openCaseAction(telegramId: string, caseId: string) {
                             fromUserId: user.id,
                             amount: commission,
                             type: 'REFERRAL_COMMISSION',
-                            description: `${user.username || user.telegramId}: ${caseData.name}`,
+                            description: `${user.username || user.telegramId}: ${caseData.name} (x${count})`,
                         }
                     });
                 }
             }
 
-            // Add reward to user (creating a copy for inventory)
-            const inventoryItem = await tx.reward.create({
-                data: {
-                    name: winner.name,
-                    rarity: winner.rarity,
-                    image: winner.image,
-                    weight: winner.weight,
-                    sellPrice: winner.sellPrice,
-                    caseId: caseId,
-                    userId: user.id, // Set the owner
+            const inventoryItems: any[] = [];
+            let bestWinnerInBatch = winners[0];
+            let maxPriceInBatch = 0;
+
+            for (const winner of winners) {
+                // Add reward to user (creating a copy for inventory)
+                const inventoryItem = await tx.reward.create({
+                    data: {
+                        name: winner.name,
+                        rarity: winner.rarity,
+                        image: winner.image,
+                        weight: winner.weight,
+                        sellPrice: winner.sellPrice,
+                        caseId: caseId,
+                        userId: user.id, // Set the owner
+                    }
+                });
+                inventoryItems.push(inventoryItem);
+
+                const itemPrice = calculateEffectivePrice(winner.rarity, winner.weight, winner.sellPrice);
+                if (itemPrice > maxPriceInBatch) {
+                    maxPriceInBatch = itemPrice;
+                    bestWinnerInBatch = winner;
                 }
-            });
+            }
 
             // Create transaction log
             await tx.transaction.create({
                 data: {
                     userId: user.id,
-                    amount: -caseData.price,
+                    amount: -totalPrice,
                     type: 'CASE_OPEN',
-                    description: `Кейс: ${caseData.name}`,
+                    description: `Кейс: ${caseData.name}${count > 1 ? ` (x${count})` : ''}`,
                 }
             });
 
-            // Update historical record if this drop is better (Price-based)
-            const winnerPrice = calculateEffectivePrice(winner.rarity, winner.weight, winner.sellPrice);
+            // Update historical record if the best drop in this batch is better (Price-based)
             const userBestPrice = (user as any).bestItemPrice || 0;
 
-            if (winnerPrice > userBestPrice) {
+            if (maxPriceInBatch > userBestPrice) {
                 await tx.user.update({
                     where: { id: user.id },
                     data: {
-                        bestItemName: winner.name,
-                        bestItemRarity: winner.rarity,
-                        bestItemImage: winner.image,
-                        bestItemWeight: winner.weight,
-                        bestItemPrice: winnerPrice
+                        bestItemName: bestWinnerInBatch.name,
+                        bestItemRarity: bestWinnerInBatch.rarity,
+                        bestItemImage: bestWinnerInBatch.image,
+                        bestItemWeight: bestWinnerInBatch.weight,
+                        bestItemPrice: maxPriceInBatch
                     }
                 });
             }
 
-            return { updatedUser, inventoryItem };
+            return { updatedUser, inventoryItems };
         });
 
         revalidatePath('/inventory');
@@ -408,7 +423,7 @@ export async function openCaseAction(telegramId: string, caseId: string) {
 
         return {
             success: true,
-            winner: result.inventoryItem,
+            winners: result.inventoryItems,
             newPoints: result.updatedUser.points
         };
     } catch (error) {

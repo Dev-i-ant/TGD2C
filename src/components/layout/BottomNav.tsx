@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Grid, Package, User, Users } from 'lucide-react';
+import { Home, Grid, Package, User, Users, Gamepad2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTheme } from '@/components/ThemeProvider';
 import { useTranslation } from '@/components/LanguageProvider';
@@ -15,6 +15,7 @@ export default function BottomNav() {
     const NAV_ITEMS = [
         { label: t.nav.home, path: '/', icon: Home },
         { label: t.nav.cases, path: '/cases', icon: Grid },
+        { label: t.nav.games, path: '/games', icon: Gamepad2 },
         { label: t.friends.title, path: '/friends', icon: Users },
         { label: t.nav.profile, path: '/profile', icon: User }
     ];
@@ -74,7 +75,7 @@ export default function BottomNav() {
                         <Link
                             key={item.path}
                             href={item.path}
-                            className={`flex flex-col items-center justify-center w-[23%] h-12 gap-1 active:translate-y-[1px] transition-none ${isActive ? 'steam-emboss bg-[var(--secondary)]' : 'steam-bevel bg-[var(--background)] opacity-60 hover:opacity-100'}`}
+                            className={`flex flex-col items-center justify-center w-[18%] h-12 gap-1 active:translate-y-[1px] transition-none ${isActive ? 'steam-emboss bg-[var(--secondary)]' : 'steam-bevel bg-[var(--background)] opacity-60 hover:opacity-100'}`}
                         >
                             <item.icon
                                 size={18}

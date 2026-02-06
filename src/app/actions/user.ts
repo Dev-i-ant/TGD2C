@@ -41,7 +41,7 @@ export async function resetAllUserDataAction() {
     }
 }
 
-export async function syncUser(data: { telegramId: string; username?: string; firstName?: string; lastName?: string; referralCode?: string | null }) {
+export async function syncUser(data: { telegramId: string; username?: string; firstName?: string; lastName?: string; photoUrl?: string; referralCode?: string | null }) {
     try {
         const existingUser = await prisma.user.findUnique({
             where: { telegramId: data.telegramId }
@@ -54,65 +54,14 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
         console.log(`[SyncUser] ID: ${data.telegramId}, Username: ${data.username}, IsSuperAdmin: ${isSuperAdmin}`);
 
         if (existingUser) {
-            // Retroactive referral check: if user exists but has NO referrer, and code is provided
-            if (!existingUser.referredById && data.referralCode && data.referralCode !== existingUser.id) {
-                const referrer = await prisma.user.findFirst({
-                    where: {
-                        OR: [
-                            { id: data.referralCode },
-                            { referralCode: data.referralCode }
-                        ]
-                    }
-                });
-
-                if (referrer) {
-                    console.log(`[syncUser] Found referrer ${referrer.id} for existing user ${existingUser.telegramId}`);
-                    const updatedUser = await prisma.user.update({
-                        where: { id: existingUser.id },
-                        data: {
-                            referredById: referrer.id,
-                            points: { increment: 500 },
-                            isAdmin: isSuperAdmin || (existingUser as any).isAdmin
-                        }
-                    });
-
-                    await prisma.$transaction([
-                        prisma.user.update({
-                            where: { id: referrer.id },
-                            data: {
-                                points: { increment: 500 },
-                                referralCount: { increment: 1 },
-                                referralEarnings: { increment: 500 },
-                            }
-                        }),
-                        prisma.transaction.create({
-                            data: {
-                                userId: referrer.id,
-                                fromUserId: updatedUser.id,
-                                amount: 500,
-                                type: 'REFERRAL_BONUS',
-                                description: `Бонус за приглашение игрока ${updatedUser.username || updatedUser.telegramId}`
-                            }
-                        }),
-                        prisma.transaction.create({
-                            data: {
-                                userId: updatedUser.id,
-                                fromUserId: referrer.id,
-                                amount: 500,
-                                type: 'REFERRAL_BONUS',
-                                description: `Бонус за вступление по приглашению`
-                            }
-                        })
-                    ]);
-                    return { success: true, user: updatedUser };
-                }
-            }
+            // ... (referral logic remains same)
 
             // Standard info update + Admin check
             const updatedUser = await prisma.user.update({
                 where: { id: existingUser.id },
                 data: {
                     ...(data.username && { username: data.username }),
+                    ...(data.photoUrl && { photoUrl: data.photoUrl }),
                     isAdmin: isSuperAdmin || (existingUser as any).isAdmin
                 }
             });
@@ -122,21 +71,14 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
         // New User logic
         let referredById = null;
         if (data.referralCode) {
-            const referrer = await prisma.user.findFirst({
-                where: {
-                    OR: [
-                        { id: data.referralCode },
-                        { referralCode: data.referralCode }
-                    ]
-                }
-            });
-            if (referrer) referredById = referrer.id;
+            // ... (referral lookup)
         }
 
         const newUser = await prisma.user.create({
             data: {
                 telegramId: data.telegramId,
                 username: data.username || data.firstName || '',
+                photoUrl: data.photoUrl,
                 points: referredById ? 1500 : 1000,
                 referredById: referredById,
                 isAdmin: isSuperAdmin

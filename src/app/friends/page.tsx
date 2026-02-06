@@ -33,6 +33,7 @@ export default function FriendsPage() {
                             username: user.username,
                             firstName: user.first_name,
                             lastName: user.last_name,
+                            photoUrl: user.photo_url,
                             referralCode: startParam
                         });
                         data = await getReferralData(user.id.toString());

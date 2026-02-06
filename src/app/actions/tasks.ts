@@ -14,10 +14,16 @@ export async function getTasks() {
     }
 }
 
-export async function getUserTaskStatus(userId: string) {
+export async function getUserTaskStatus(telegramId: string) {
     try {
+        const user = await prisma.user.findUnique({
+            where: { telegramId }
+        });
+
+        if (!user) return {};
+
         const completedTasks = await prisma.userTask.findMany({
-            where: { userId },
+            where: { userId: user.id },
             include: { task: true }
         });
 
@@ -26,7 +32,7 @@ export async function getUserTaskStatus(userId: string) {
 
         completedTasks.forEach(ut => {
             if (ut.task.type === 'DAILY') {
-                const lastCompleted = new Date((ut as any).updatedAt);
+                const lastCompleted = new Date(ut.updatedAt);
                 const diffHours = (now.getTime() - lastCompleted.getTime()) / (1000 * 60 * 60);
                 if (diffHours < 24) {
                     statusMap[ut.taskId] = { lastCompletedAt: lastCompleted.toISOString() };

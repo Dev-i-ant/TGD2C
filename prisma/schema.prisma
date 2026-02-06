@@ -13,11 +13,13 @@ model User {
   id           String        @id @default(cuid())
   telegramId   String        @unique
   username     String?
+  photoUrl     String?
   points       Int           @default(0)
   tradeUrl     String?
   inventory    Reward[]
   tasks        UserTask[]
   transactions Transaction[]
+  battles      BattleParticipant[]
   isAdmin      Boolean       @default(false)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -84,6 +86,7 @@ model Case {
   color       String   @default("bg-blue-500")
   rarity      String   @default("RARE")
   rewards     Reward[]
+  battleCases BattleCase[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -100,8 +103,57 @@ model Reward {
   case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
   userId    String?
   owner     User?    @relation(fields: [userId], references: [id])
+  battleRewards BattleReward[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Battle {
+  id              String      @id @default(cuid())
+  status          String      @default("WAITING") // "WAITING", "IN_PROGRESS", "FINISHED"
+  maxParticipants Int         @default(2)
+  totalPrice      Int
+  creatorId       String
+  isCrazyMode     Boolean     @default(false)
+  participants    BattleParticipant[]
+  cases           BattleCase[]
+  rewards         BattleReward[]
+  winnerId        String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model BattleParticipant {
+  id         String   @id @default(cuid())
+  battleId   String
+  battle     Battle   @relation(fields: [battleId], references: [id], onDelete: Cascade)
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  slot       Int
+  isBot      Boolean  @default(false)
+  totalValue Int      @default(0)
+  rewards    BattleReward[]
+}
+
+model BattleCase {
+  id       String @id @default(cuid())
+  battleId String
+  battle   Battle @relation(fields: [battleId], references: [id], onDelete: Cascade)
+  caseId   String
+  case     Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  order    Int
+}
+
+model BattleReward {
+  id            String   @id @default(cuid())
+  battleId      String
+  battle        Battle   @relation(fields: [battleId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   BattleParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  roundIndex    Int
+  rewardId      String
+  reward        Reward   @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+  value         Int
 }
 
 model GlobalItem {

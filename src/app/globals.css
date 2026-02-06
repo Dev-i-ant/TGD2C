@@ -1,18 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  /* Theme Variables - Default: Steam 2003 */
-  --background: #4b563f;
+  /* Theme Variables - Default: Steam 2003 (Balanced darkness/readability) */
+  --background: #55604a;
   --foreground: #eff6ee;
-  --primary: #4e5844;
+  --primary: #5b664f;
   --primary-foreground: #eff6ee;
-  --secondary: #3d4535;
-  --accent: #968732;
-  --card: #4b563f;
-  --border: #3d4535;
-  --border-light: #6d7a5b;
-  --border-dark: #2d3529;
-  --text-muted: #8a967a;
+  --secondary: #444d3b;
+  --accent: #a89a3a;
+  --card: #55604a;
+  --border: #444d3b;
+  --border-light: #768666;
+  --border-dark: #343c2e;
+  --text-muted: #95a386;
   --btn-accent: var(--accent);
 
   /* Shape & Text Variables */

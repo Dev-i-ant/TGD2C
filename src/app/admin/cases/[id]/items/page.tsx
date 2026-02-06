@@ -4,13 +4,13 @@ import { useState, useEffect } from 'react';
 import PageHeader from '@/components/ui/PageHeader';
 import { useParams } from 'next/navigation';
 import { ChevronLeft, Plus, Trash2, Package, Search, TrendingUp, Edit2, Save, X, ArrowUpDown, Wand2, Filter } from 'lucide-react';
-import { getCaseRewards, addReward, updateReward, deleteReward, getGlobalItems, addRewardFromLibrary } from '@/app/admin/cases/actions';
 import { motion, AnimatePresence } from 'framer-motion';
-
-import { RARITIES, RARITY_COLORS, getRarityColor } from '@/lib/constants';
+import { RARITIES, RARITY_COLORS, getRarityColor, ECONOMY_CONFIG } from '@/lib/constants';
+import { getCaseRewards, addReward, updateReward, deleteReward, getGlobalItems, addRewardFromLibrary, getCaseById, autoBalanceCase } from '@/app/admin/cases/actions';
 
 export default function CaseItemsPage() {
     const { id } = useParams();
+    const [caseData, setCaseData] = useState<any>(null);
     // List of rewards in this case
     const [rewards, setRewards] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -22,6 +22,7 @@ export default function CaseItemsPage() {
     const [sellPrice, setSellPrice] = useState('');
     const [image, setImage] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [targetRtp, setTargetRtp] = useState('85');
     const [editingReward, setEditingReward] = useState<any>(null);
     const [isAutoWeight, setIsAutoWeight] = useState(true);
 
@@ -37,6 +38,7 @@ export default function CaseItemsPage() {
 
     useEffect(() => {
         fetchRewards();
+        fetchCase();
     }, [id]);
 
     async function fetchRewards() {
@@ -44,6 +46,40 @@ export default function CaseItemsPage() {
         setRewards(data);
         setIsLoading(false);
     }
+
+    async function fetchCase() {
+        const data = await getCaseById(id as string);
+        setCaseData(data);
+    }
+
+    const calculateRTP = () => {
+        if (!caseData || caseData.price === 0 || rewards.length === 0) return 0;
+        const totalWeight = rewards.reduce((sum, r) => sum + r.weight, 0);
+        if (totalWeight === 0) return 0;
+
+        const totalExpectedReturn = rewards.reduce((sum, r) => {
+            const prob = r.weight / totalWeight;
+            return sum + (r.sellPrice || 0) * prob;
+        }, 0);
+
+        return (totalExpectedReturn / caseData.price) * 100;
+    };
+
+    const handleAutoBalance = async () => {
+        const target = parseFloat(targetRtp);
+        if (isNaN(target) || target < 1 || target > 200) return alert('Введите корректный RTP (1-200%)');
+
+        if (!confirm(`Автоматически пересчитать веса и цены всех предметов для RTP ~${target}%?`)) return;
+        setIsSaving(true);
+        const result = await autoBalanceCase(id as string, target);
+        if (result.success) {
+            await fetchRewards();
+            alert(`Баланс кейса успешно оптимизирован под ${target}% RTP!`);
+        } else {
+            alert(result.error);
+        }
+        setIsSaving(false);
+    };
 
     const calculateWeightFromPrice = (price: string) => {
         const p = parseInt(price);
@@ -199,6 +235,41 @@ export default function CaseItemsPage() {
             <PageHeader title="Содержимое кейса" backPath={`/admin/cases/${id}`} isAdmin />
 
             <div className="p-6 flex flex-col gap-8">
+                {/* Economy Stats */}
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="steam-bevel bg-white/5 p-4 flex flex-col gap-1 border border-white/5">
+                        <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">Текущий RTP</span>
+                        <div className="flex items-center gap-2">
+                            <span className={`text-xl font-black ${calculateRTP() > 95 ? 'text-red-500' : 'text-green-500'}`}>
+                                {calculateRTP().toFixed(1)}%
+                            </span>
+                            <TrendingUp size={14} className="text-white/20" />
+                        </div>
+                        <p className="text-[7px] text-white/20 uppercase font-black tracking-tighter">На основе весов и цен</p>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <div className="flex gap-2">
+                            <div className="flex-1 steam-bevel bg-white/5 p-2 flex flex-col gap-1 border border-white/5">
+                                <span className="text-[7px] font-black text-white/40 uppercase tracking-widest">Цель RTP (%)</span>
+                                <input
+                                    type="number"
+                                    value={targetRtp}
+                                    onChange={(e) => setTargetRtp(e.target.value)}
+                                    className="bg-transparent text-sm font-black text-indigo-400 outline-none w-full"
+                                />
+                            </div>
+                            <button
+                                onClick={handleAutoBalance}
+                                disabled={isSaving || rewards.length === 0}
+                                className="steam-bevel h-full px-4 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 active:translate-y-[1px] hover:bg-indigo-500/20 transition-all disabled:opacity-30"
+                            >
+                                <Wand2 size={18} />
+                            </button>
+                        </div>
+                        <span className="text-[7px] text-white/20 uppercase font-black tracking-tighter text-center">Пересчитать балланс цен и весов</span>
+                    </div>
+                </div>
+
                 {/* Library Button */}
                 <button
                     onClick={openLibrary}

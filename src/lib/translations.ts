@@ -23,7 +23,23 @@ export const translations = {
             friends: 'Друзья',
             profile: 'Профиль',
             tasks: 'Задания',
-            leaderboard: 'Рейтинг'
+            leaderboard: 'Рейтинг',
+            games: 'Игры'
+        },
+        games: {
+            title: 'Игры',
+            battle: 'Кейс-Баттл',
+            battle_desc: 'Сразись с другими за главный приз!',
+            create_battle: 'Создать баттл',
+            active_battles: 'Активные битвы',
+            waiting_players: 'Ожидание игроков',
+            room_full: 'Комната полна',
+            start_countdown: 'Начинаем через...',
+            winner: 'Победитель',
+            tie: 'Ничья!',
+            exit_game: 'Выйти',
+            add_bot: 'Добавить бота',
+            join: 'Вступить'
         },
         home: {
             network_balance: 'Сетевой баланс',
@@ -148,7 +164,23 @@ export const translations = {
             friends: 'Friends',
             profile: 'Profile',
             tasks: 'Tasks',
-            leaderboard: 'Leaderboard'
+            leaderboard: 'Leaderboard',
+            games: 'Games'
+        },
+        games: {
+            title: 'Games',
+            battle: 'Case Battle',
+            battle_desc: 'Battle others for the grand prize!',
+            create_battle: 'Create Battle',
+            active_battles: 'Active Battles',
+            waiting_players: 'Waiting for players',
+            room_full: 'Room is full',
+            start_countdown: 'Starting in...',
+            winner: 'Winner',
+            tie: 'It\'s a Tie!',
+            exit_game: 'Exit',
+            add_bot: 'Add Bot',
+            join: 'Join'
         },
         home: {
             network_balance: 'Network Balance',

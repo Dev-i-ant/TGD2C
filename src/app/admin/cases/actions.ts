@@ -283,3 +283,56 @@ export async function addRewardFromLibrary(caseId: string, globalItemId: string,
         return { success: false, error: 'Ошибка при добавлении предмета из библиотеки' };
     }
 }
+export async function autoBalanceCase(caseId: string, targetRtp: number = 85) {
+    try {
+        const c = await prisma.case.findUnique({
+            where: { id: caseId },
+            include: { rewards: { where: { userId: null } } }
+        });
+
+        if (!c) return { success: false, error: 'Кейс не найден' };
+        if (c.rewards.length === 0) return { success: false, error: 'Кейс пуст' };
+
+        // Group rewards by rarity to calculate weights
+        const rarityGroups: Record<string, any[]> = {};
+        c.rewards.forEach(r => {
+            if (!rarityGroups[r.rarity]) rarityGroups[r.rarity] = [];
+            rarityGroups[r.rarity].push(r);
+        });
+
+        // Get base economy config
+        const { ECONOMY_CONFIG } = await import('@/lib/constants');
+
+        // Calculate the ratio between actual target and base target (85%)
+        const rtpRatio = targetRtp / 85;
+
+        const updates = c.rewards.map(r => {
+            const config = (ECONOMY_CONFIG as any)[r.rarity] || (ECONOMY_CONFIG as any).COMMON;
+
+            // Scaled multiplier based on target RTP
+            const scaledMultiplier = config.multiplier * rtpRatio;
+            const suggestedPrice = Math.max(1, Math.floor(c.price * scaledMultiplier));
+
+            // Weight remains rarity-balanced
+            const itemsCountInRarity = rarityGroups[r.rarity].length;
+            const suggestedWeight = Math.max(1, Math.floor((config.baseProbability * 100) / itemsCountInRarity));
+
+            return prisma.reward.update({
+                where: { id: r.id },
+                data: {
+                    sellPrice: suggestedPrice,
+                    weight: suggestedWeight
+                }
+            });
+        });
+
+        await prisma.$transaction(updates);
+
+        revalidatePath(`/cases/${caseId}`);
+        revalidatePath(`/admin/cases/${caseId}/items`);
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to auto-balance case:', error);
+        return { success: false, error: 'Ошибка при автоматической балансировке' };
+    }
+}

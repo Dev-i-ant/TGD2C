@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Package, ClipboardList, Wallet, Sparkles } from 'lucide-react';
+import { Package, ClipboardList, Wallet, Sparkles, Gamepad2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -45,6 +45,7 @@ export default function Home() {
             username: user.username,
             firstName: user.first_name,
             lastName: user.last_name,
+            photoUrl: user.photo_url,
             referralCode: referralCode
           });
           if (result.success && result.user) {
@@ -120,27 +121,38 @@ export default function Home() {
       </motion.div>
 
       {/* Grid Menu */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         <Link
           href="/cases"
           prefetch={true}
-          className="steam-bevel p-6 flex flex-col items-center gap-3 active:translate-y-[1px] transition-none"
+          className="steam-bevel p-4 flex flex-col items-center gap-3 active:translate-y-[1px] transition-none"
         >
-          <div className="w-10 h-10 steam-emboss flex items-center justify-center">
-            <Package className="text-[var(--accent)]" size={20} />
+          <div className="w-8 h-8 steam-emboss flex items-center justify-center">
+            <Package className="text-[var(--accent)]" size={16} />
           </div>
-          <span className="steam-header-text text-[10px] text-[var(--foreground)]">{t.nav.cases}</span>
+          <span className="steam-header-text text-[9px] text-[var(--foreground)]">{t.nav.cases}</span>
+        </Link>
+
+        <Link
+          href="/games"
+          prefetch={true}
+          className="steam-bevel p-4 flex flex-col items-center gap-3 active:translate-y-[1px] transition-none"
+        >
+          <div className="w-8 h-8 steam-emboss flex items-center justify-center">
+            <Gamepad2 className="text-[var(--accent)]" size={16} />
+          </div>
+          <span className="steam-header-text text-[9px] text-[var(--foreground)]">{t.nav.games}</span>
         </Link>
 
         <Link
           href="/tasks"
           prefetch={true}
-          className="steam-bevel p-6 flex flex-col items-center gap-3 active:translate-y-[1px] transition-none"
+          className="steam-bevel p-4 flex flex-col items-center gap-3 active:translate-y-[1px] transition-none"
         >
-          <div className="w-10 h-10 steam-emboss flex items-center justify-center">
-            <ClipboardList className="text-[var(--accent)]" size={20} />
+          <div className="w-8 h-8 steam-emboss flex items-center justify-center">
+            <ClipboardList className="text-[var(--accent)]" size={16} />
           </div>
-          <span className="steam-header-text text-[10px] text-[var(--foreground)]">{t.nav.tasks}</span>
+          <span className="steam-header-text text-[9px] text-[var(--foreground)]">{t.nav.tasks}</span>
         </Link>
       </div>
 

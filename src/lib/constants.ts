@@ -48,6 +48,31 @@ export const RARITY_BASELINES: Record<string, number> = {
     'ARCANA': 15000
 };
 
+export const ECONOMY_CONFIG: Record<Rarity, { multiplier: number; baseProbability: number }> = {
+    ARCANA: { multiplier: 50.0, baseProbability: 1.0 },
+    IMMORTAL: { multiplier: 4.0, baseProbability: 2.0 },
+    ANCIENT: { multiplier: 2.0, baseProbability: 4.0 },
+    LEGENDARY: { multiplier: 1.2, baseProbability: 6.0 },
+    MYTHICAL: { multiplier: 0.5, baseProbability: 10.0 },
+    RARE: { multiplier: 0.2, baseProbability: 15.0 },
+    UNCOMMON: { multiplier: 0.1, baseProbability: 22.0 },
+    COMMON: { multiplier: 0.05, baseProbability: 40.0 },
+};
+
+export const calculateSuggestedPrice = (rarity: string, casePrice: number): number => {
+    const config = ECONOMY_CONFIG[rarity as Rarity] || ECONOMY_CONFIG.COMMON;
+    return Math.max(1, Math.floor(casePrice * config.multiplier));
+};
+
+export const calculateSuggestedWeight = (rarity: string, itemsCountInRarity: number): number => {
+    const config = ECONOMY_CONFIG[rarity as Rarity] || ECONOMY_CONFIG.COMMON;
+    if (itemsCountInRarity <= 0) return 0;
+    // We target a fixed total probability for the rarity group.
+    // If there are 2 items in Mythical (10%), each gets weight that results in 5% each.
+    // Since probability = weight / totalWeight, we can use 1000 * probability as weight units.
+    return Math.max(1, Math.floor((config.baseProbability * 100) / itemsCountInRarity));
+};
+
 export const calculateEffectivePrice = (rarity: string, weight: number, customPrice?: number | null) => {
     if (customPrice !== null && customPrice !== undefined && customPrice > 0) return customPrice;
 

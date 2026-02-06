@@ -5,8 +5,8 @@ import Script from "next/script";
 // Using system fonts to avoid build failures in restricted networks
 
 export const metadata: Metadata = {
-  title: "Dota 2 Case Opening TMA",
-  description: "Open cases and win rewards for Dota 2",
+  title: "back-loot.ru",
+  description: "Верни свою удачу — кейсы Dota 2",
 };
 
 import BottomNav from "@/components/layout/BottomNav";

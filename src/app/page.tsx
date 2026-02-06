@@ -14,7 +14,7 @@ export default function Home() {
   const router = useRouter();
   const { t, language } = useTranslation();
   const [points, setPoints] = useState(0);
-  const [username, setUsername] = useState(t.common.loading);
+  const [username, setUsername] = useState(t.common.connecting);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [featuredCase, setFeaturedCase] = useState<any>(null);
@@ -23,13 +23,22 @@ export default function Home() {
 
   useEffect(() => {
     async function init() {
-      // 1. Fetch Cases
+      // 1. Redirect if not in Telegram (browser visit)
+      if (typeof window !== 'undefined') {
+        const tg = window.Telegram?.WebApp;
+        if (!tg?.initData && !window.location.search.includes('tgWebAppStartParam')) {
+          window.location.href = 'https://t.me/back_loot_bot';
+          return;
+        }
+      }
+
+      // 2. Fetch Cases
       const cases = await getCases();
       if (cases && cases.length > 0) {
         setFeaturedCase(cases[0]);
       }
 
-      // 2. Sync User with DB
+      // 3. Sync User with DB
       if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
         const tg = window.Telegram.WebApp;
         const user = tg.initDataUnsafe?.user;
@@ -52,7 +61,7 @@ export default function Home() {
             setPoints(result.user.points);
             setUsername(`${user.first_name}${user.last_name ? ' ' + user.last_name : ''}`);
 
-            // 3. Check Prize availability
+            // 4. Check Prize availability
             const prizeAvailable = await checkDailyRewardAvailable(user.id.toString());
             setIsPrizeAvailable(prizeAvailable);
           }

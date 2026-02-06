@@ -48,11 +48,13 @@ services:
     networks:
       - app-network
 
-  # Cloudflare Tunnel for stable HTTPS (Required by Telegram)
+  # Cloudflare Tunnel (Persistent)
   tunnel:
     container_name: TGD2OC_tunnel
     image: cloudflare/cloudflared:latest
-    command: tunnel --no-autoupdate --url http://web:3000 --heartbeat-interval 10s --heartbeat-count 3
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=eyJhIjoiZDZmNDUwY2JlNTc3NTJhMzMwN2Q3NjdmNTA3YTk4NzciLCJ0IjoiODVmYmIwMGQtYzY5YS00YTAzLTkzZDYtNTg1MTBmOTUzNWU4IiwicyI6IlkyWmtZamRsTmpZdE1XUTFOUzAwTjJZMExXSXhPVEl0T1RneFlqTXhNVGhqTVRBMiJ9
     depends_on:
       - web
     restart: unless-stopped

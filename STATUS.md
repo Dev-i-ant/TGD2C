@@ -3,6 +3,18 @@
 
 ---
 
+The Dota 2 Case project is now live on the Reg.ru VPS (`89.111.175.31`) with a dual-stack setup.
+
+## Accomplishments
+1. **Multi-Environment Infrastructure**:
+   - **Production**: `back-loot.ru` (Port 3000)
+   - **Development/Dev**: `back-loot.online` (Port 3001)
+2. **Nginx Routing**: Configured multi-domain routing to separate containers based on the domain name.
+3. **Database Isolation**:
+   - Prod uses `dev.db`.
+   - Dev uses `dev_stg.db`.
+4. **Networking Fix**: Resolved MTU mismatch (1450) inside all containers.
+
 ## ✅ Полностью готово
 
 ### Инфраструктура и Деплой

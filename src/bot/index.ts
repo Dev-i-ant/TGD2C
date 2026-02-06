@@ -34,10 +34,10 @@ bot.start(async (ctx) => {
     }
 
     ctx.reply(
-        `Привет, ${ctx.from.first_name}! 🎮\n\nДобро пожаловать в Dota 2 Case Opening. Готов выбить свой первый Dragonclaw Hook?`,
+        `Привет, ${ctx.from.first_name}! 🎮\n\nДобро пожаловать в back-loot.ru — верни свою удачу! 🍀\n\nЗаходи в приложение прямо сейчас и получи бесплатный прокрут кейса! 🎁`,
         Markup.inlineKeyboard([
             [Markup.button.webApp('Открыть Mini App', appUrlWithParam)],
-            [Markup.button.url('Подписаться на канал', 'https://t.me/your_channel')]
+            [Markup.button.url('Подписаться на канал', 'https://t.me/+kZEYfYqhbSk3M2Ey')]
         ])
     );
 });

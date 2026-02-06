@@ -15,7 +15,8 @@ export const translations = {
             sell: 'Продать',
             back: 'Назад',
             success: 'Успешно',
-            cancel: 'Отмена'
+            cancel: 'Отмена',
+            connecting: 'Подключение...'
         },
         nav: {
             home: 'Главная',
@@ -44,7 +45,8 @@ export const translations = {
         home: {
             network_balance: 'Сетевой баланс',
             view_transactions: 'История транзакций',
-            recommended: 'Рекомендуемое'
+            recommended: 'Рекомендуемое',
+            slogan: 'Верни свою удачу'
         },
         profile: {
             title: 'Профиль',
@@ -55,7 +57,7 @@ export const translations = {
             inventory: 'Инвентарь',
             settings: 'Настройки',
             admin: 'Админ-панель',
-            share_text: 'Смотри, какой дроп мне выпал в Dota 2 Mini App! 🎁',
+            share_text: 'Смотри, какой дроп мне выпал на back-loot.ru! 🎁',
             theme: 'Тема оформления',
             total_opened: 'Всего открыто',
             earned_bp: 'Заработано BP',
@@ -105,7 +107,7 @@ export const translations = {
             commission: 'Комиссия',
             no_friends: 'У тебя пока нет рефералов.',
             generate_link: 'Генерация ссылки...',
-            share_text: 'Заходи и открывай кейсы Dota 2! При входе по моей ссылке получишь бонус! 🎁',
+            share_text: 'Заходи и открывай кейсы на back-loot.ru! При входе по моей ссылке получишь бонус! 🎁',
             stats: 'Статистика',
             total_friends: 'Всего друзей',
             bonus_earned: 'Бонусов получено',
@@ -156,7 +158,8 @@ export const translations = {
             sell: 'Sell',
             back: 'Back',
             success: 'Success',
-            cancel: 'Cancel'
+            cancel: 'Cancel',
+            connecting: 'Connecting...'
         },
         nav: {
             home: 'Home',
@@ -185,7 +188,8 @@ export const translations = {
         home: {
             network_balance: 'Network Balance',
             view_transactions: 'View Transactions',
-            recommended: 'Recommended'
+            recommended: 'Recommended',
+            slogan: 'Return your luck'
         },
         profile: {
             title: 'Profile',
@@ -196,7 +200,7 @@ export const translations = {
             inventory: 'Inventory',
             settings: 'Settings',
             admin: 'Admin Panel',
-            share_text: 'Look at this drop I got in Dota 2 Mini App! 🎁',
+            share_text: 'Look at this drop I got on back-loot.ru! 🎁',
             theme: 'Interface Theme',
             total_opened: 'Total Opened',
             earned_bp: 'Earned BP',
@@ -246,7 +250,7 @@ export const translations = {
             commission: 'Commission',
             no_friends: 'You have no recruits yet.',
             generate_link: 'Generating link...',
-            share_text: 'Join and open Dota 2 cases! Get a bonus when you join via my link! 🎁',
+            share_text: 'Join and open cases on back-loot.ru! Get a bonus when you join via my link! 🎁',
             stats: 'Statistics',
             total_friends: 'Total Friends',
             bonus_earned: 'Bonus Earned',

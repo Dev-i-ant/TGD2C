@@ -65,29 +65,31 @@ export default function BottomNav() {
 
     return (
         <div className="fixed bottom-0 left-0 right-0 z-50 p-2 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-            <div className="steam-bevel bg-[var(--background)] px-2 py-2 flex items-center justify-between shadow-2xl mb-2">
-                {NAV_ITEMS.map((item) => {
-                    const isActive = item.path === '/'
-                        ? pathname === '/'
-                        : pathname.startsWith(item.path);
+            <div className="max-w-md mx-auto">
+                <div className="steam-bevel bg-[var(--background)] px-2 py-2 flex items-center justify-between shadow-2xl">
+                    {NAV_ITEMS.map((item) => {
+                        const isActive = item.path === '/'
+                            ? pathname === '/'
+                            : pathname.startsWith(item.path);
 
-                    return (
-                        <Link
-                            key={item.path}
-                            href={item.path}
-                            className={`flex flex-col items-center justify-center w-[18%] h-12 gap-1 active:translate-y-[1px] transition-none ${isActive ? 'steam-emboss bg-[var(--secondary)]' : 'steam-bevel bg-[var(--background)] opacity-60 hover:opacity-100'}`}
-                        >
-                            <item.icon
-                                size={18}
-                                className={`transition-none ${isActive ? 'text-[var(--accent)]' : 'text-[var(--foreground)]/40'}`}
-                            />
+                        return (
+                            <Link
+                                key={item.path}
+                                href={item.path}
+                                className={`flex flex-col items-center justify-center w-[18%] h-12 gap-1 active:translate-y-[1px] transition-none ${isActive ? 'steam-emboss bg-[var(--secondary)]' : 'steam-bevel bg-[var(--background)] opacity-60 hover:opacity-100'}`}
+                            >
+                                <item.icon
+                                    size={18}
+                                    className={`transition-none ${isActive ? 'text-[var(--accent)]' : 'text-[var(--foreground)]/40'}`}
+                                />
 
-                            <span className="steam-header-text text-[8px] transition-none">
-                                {item.label}
-                            </span>
-                        </Link>
-                    );
-                })}
+                                <span className="steam-header-text text-[8px] transition-none">
+                                    {item.label}
+                                </span>
+                            </Link>
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );

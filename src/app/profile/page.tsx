@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import PageHeader from '@/components/ui/PageHeader';
 import { motion } from 'framer-motion';
-import { Wallet, Package, Trophy, Settings, Star, Palette, Sparkles, Share2, Check, History as HistoryIcon, ShieldCheck } from 'lucide-react';
+import { Wallet, Package, Trophy, Settings, Star, Palette, Sparkles, Share2, Check, History as HistoryIcon, ShieldCheck, ExternalLink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getUserData } from '../actions/user';
 import { useTheme } from '@/components/ThemeProvider';
@@ -26,11 +26,25 @@ export default function ProfilePage() {
                 const tg = window.Telegram.WebApp;
                 const user = tg.initDataUnsafe?.user;
                 if (user) {
-                    setFullName(`${user.first_name}${user.last_name ? ' ' + user.last_name : ''}`);
+                    const fName = user.first_name && user.first_name !== 'undefined' ? user.first_name : '';
+                    const lName = user.last_name && user.last_name !== 'undefined' ? user.last_name : '';
+                    const localDisplayName = (fName + (lName ? ' ' + lName : '')).trim() || 'User';
+
+                    setFullName(localDisplayName);
                     setPhotoUrl(user.photo_url || null);
-                    setTgHandle(user.username || null);
-                    const data = await getUserData(user.id.toString());
+                    setTgHandle(user.username && user.username !== 'undefined' ? user.username : null);
+                    const data = await getUserData(user.id.toString()) as any;
                     setUserData(data);
+
+                    // If DB data has valid firstName/lastName, prefer it
+                    if (data?.firstName && data.firstName !== 'undefined') {
+                        const dbFName = data.firstName;
+                        const dbLName = data.lastName && data.lastName !== 'undefined' ? data.lastName : '';
+                        setFullName((dbFName + (dbLName ? ' ' + dbLName : '')).trim());
+                    }
+                    if (data?.photoUrl) {
+                        setPhotoUrl(data.photoUrl);
+                    }
                 }
             }
             setIsLoading(false);
@@ -109,7 +123,7 @@ export default function ProfilePage() {
                         className="steam-emboss p-4 flex flex-col gap-1 items-center justify-center cursor-pointer active:translate-y-[1px] transition-none"
                     >
                         <Package className="text-[var(--accent)] mb-1" size={16} />
-                        <span className="text-xl font-black text-[var(--foreground)] leading-none">{userData?.stats?.inventoryCount || userData?.inventory?.length || 0}</span>
+                        <span className="text-xl font-black text-[var(--foreground)] leading-none">{userData?.stats?.inventoryCount ?? 0}</span>
                         <span className="steam-header-text text-[9px] text-[var(--foreground)]/60">{t.nav.inventory || t.profile.inventory}</span>
                     </div>
                 </div>
@@ -242,6 +256,22 @@ export default function ProfilePage() {
                             <div className="flex items-center gap-3 text-white/80">
                                 <Settings size={20} className="text-blue-500" />
                                 <span className="font-bold text-[var(--foreground)]">{t.profile.settings}</span>
+                            </div>
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                if (window.Telegram?.WebApp) {
+                                    window.Telegram.WebApp.openTelegramLink('https://t.me/Open_My_Case_bot');
+                                } else {
+                                    window.open('https://t.me/Open_My_Case_bot', '_blank');
+                                }
+                            }}
+                            className="dota-card p-4 flex items-center justify-between hover:bg-white/5 transition-colors border-l-2 border-l-green-600"
+                        >
+                            <div className="flex items-center gap-3 text-white/80">
+                                <ExternalLink size={20} className="text-green-600" />
+                                <span className="font-bold text-[var(--foreground)]">{t.settings.support}</span>
                             </div>
                         </button>
 

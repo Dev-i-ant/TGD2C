@@ -9,71 +9,71 @@ import { getCases } from './admin/cases/actions';
 import { syncUser } from './actions/user';
 import { checkDailyRewardAvailable } from './actions/tasks';
 import { useTranslation } from '@/components/LanguageProvider';
+import MaintenanceStub from '@/components/MaintenanceStub';
+import { useUser } from '@/components/UserContext';
 
 export default function Home() {
   const router = useRouter();
   const { t, language } = useTranslation();
+  const { user: ctxUser, points: ctxPoints, isAdmin: ctxAdmin, isLoading: ctxLoading } = useUser();
   const [points, setPoints] = useState(0);
   const [username, setUsername] = useState(t.common.connecting);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [featuredCase, setFeaturedCase] = useState<any>(null);
   const [isPrizeAvailable, setIsPrizeAvailable] = useState(false);
   const [isLoadingPoints, setIsLoadingPoints] = useState(true);
 
   useEffect(() => {
+    setIsClient(true);
+
     async function init() {
-      // 1. Redirect if not in Telegram (browser visit)
-      if (typeof window !== 'undefined') {
-        const tg = window.Telegram?.WebApp;
-        if (!tg?.initData && !window.location.search.includes('tgWebAppStartParam')) {
-          window.location.href = 'https://t.me/back_loot_bot';
-          return;
+      try {
+        // 1. Fetch Cases
+        const cases = await getCases();
+        if (cases && cases.length > 0) {
+          setFeaturedCase(cases[0]);
         }
-      }
 
-      // 2. Fetch Cases
-      const cases = await getCases();
-      if (cases && cases.length > 0) {
-        setFeaturedCase(cases[0]);
-      }
+        // 2. State from Context
+        const u = ctxUser as any;
+        if (u) {
+          setPoints(ctxPoints || u.points || 0);
+          setIsAdmin(ctxAdmin || u.isAdmin || false);
 
-      // 3. Sync User with DB
-      if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-        const tg = window.Telegram.WebApp;
-        const user = tg.initDataUnsafe?.user;
-        if (user) {
-          setPhotoUrl(user.photo_url || null);
+          // Robust photo mapping
+          setPhotoUrl(u.photoUrl || u.photo_url || null);
 
-          // Failsafe: check both initData and URL search params
-          const urlParams = new URLSearchParams(window.location.search);
-          const referralCode = tg.initDataUnsafe?.start_param || urlParams.get('startapp') || urlParams.get('start');
+          // Robust name construction
+          const dbUsername = u.username && u.username !== 'undefined' ? u.username : null;
+          const fName = (u.firstName || u.first_name || '').toString();
+          const lName = (u.lastName || u.last_name || '').toString();
+          const cleanFName = fName && fName !== 'undefined' ? fName : '';
+          const cleanLName = lName && lName !== 'undefined' ? lName : '';
+          const fullName = (cleanFName + (cleanLName ? ' ' + cleanLName : '')).trim();
 
-          const result = await syncUser({
-            telegramId: user.id.toString(),
-            username: user.username,
-            firstName: user.first_name,
-            lastName: user.last_name,
-            photoUrl: user.photo_url,
-            referralCode: referralCode
-          });
-          if (result.success && result.user) {
-            setPoints(result.user.points);
-            setUsername(`${user.first_name}${user.last_name ? ' ' + user.last_name : ''}`);
+          setUsername(dbUsername || fullName || 'User');
 
-            // 4. Check Prize availability
-            const prizeAvailable = await checkDailyRewardAvailable(user.id.toString());
-            setIsPrizeAvailable(prizeAvailable);
-          }
+          // 3. Check Prize availability
+          const prizeAvailable = await checkDailyRewardAvailable((u.telegramId || u.id || '').toString());
+          setIsPrizeAvailable(prizeAvailable);
+          setIsLoadingPoints(false);
+        } else if (!ctxLoading) {
           setIsLoadingPoints(false);
         }
+      } catch (err) {
+        console.error('[Home] Init error:', err);
+        setIsLoadingPoints(false);
       }
     }
+
     init();
-    setIsClient(true);
-  }, []);
+  }, [ctxUser, ctxPoints, ctxAdmin, ctxLoading]);
 
   if (!isClient) return null;
+
+  // RootLayout handles MaintenanceStub for non-admins now
 
   return (
     <div className="flex flex-col gap-6 p-6 pb-24 pt-[calc(6.5rem+env(safe-area-inset-top))]">

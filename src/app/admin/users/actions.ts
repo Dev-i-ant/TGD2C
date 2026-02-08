@@ -13,6 +13,7 @@ export async function getAllUsers() {
                 username: true,
                 points: true,
                 isAdmin: true,
+                isWhitelisted: true,
                 titles: true,
                 createdAt: true,
                 _count: {
@@ -67,5 +68,20 @@ export async function toggleAdminStatus(userId: string, currentStatus: boolean) 
     } catch (error) {
         console.error('Failed to toggle admin status:', error);
         return { success: false, error: 'Ошибка при изменении прав' };
+    }
+}
+
+export async function toggleWhitelistStatus(userId: string, currentStatus: boolean) {
+    try {
+        await prisma.user.update({
+            where: { id: userId },
+            data: { isWhitelisted: !currentStatus }
+        });
+        revalidatePath('/admin/users');
+        revalidatePath('/profile');
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to toggle whitelist status:', error);
+        return { success: false, error: 'Ошибка при изменении доступа' };
     }
 }

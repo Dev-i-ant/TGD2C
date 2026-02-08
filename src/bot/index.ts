@@ -18,6 +18,27 @@ console.log('📦 Initializing Telegraf...');
 const bot = new Telegraf(token);
 
 console.log('⚙️ Setting up bot commands...');
+
+// Middleware for logging
+bot.use(async (ctx, next) => {
+    const start = Date.now();
+    try {
+        // Log the update
+        const updateType = ctx.updateType;
+        const userId = ctx.from?.id;
+        const username = ctx.from?.username;
+        console.log(`📩 [${new Date().toISOString()}] Update from ${userId} (@${username}): ${updateType}`, JSON.stringify(ctx.update, null, 2));
+
+        await next();
+
+        const ms = Date.now() - start;
+        console.log(`✅ [${new Date().toISOString()}] Processed ${updateType} in ${ms}ms`);
+    } catch (err) {
+        console.error(`❌ [${new Date().toISOString()}] Error processing update:`, err);
+        // You might want to reply to user if possible
+    }
+});
+
 bot.start(async (ctx) => {
     const startPayload = ctx.payload; // Capture the code after /start
     const appUrlWithParam = startPayload ? `${webAppUrl}?startapp=${startPayload}` : webAppUrl;

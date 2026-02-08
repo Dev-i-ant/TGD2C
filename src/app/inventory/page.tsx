@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import PageHeader from '@/components/ui/PageHeader';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package, ExternalLink, TrendingUp, Wallet, Trash2 } from 'lucide-react';
+import { Package, ExternalLink, TrendingUp, Wallet, Trash2, Check } from 'lucide-react';
+
 import { getUserData, sellItemAction, withdrawItemAction, sellAllItemsAction } from '../actions/user';
 import { useTranslation } from '@/components/LanguageProvider';
 import { useTheme } from '@/components/ThemeProvider';
@@ -27,6 +28,8 @@ export default function InventoryPage() {
     const [isSelling, setIsSelling] = useState(false);
     const [activeTab, setActiveTab] = useState<'IN_STOCK' | 'SOLD' | 'WITHDRAWN'>('IN_STOCK');
     const [showMassSellConfirm, setShowMassSellConfirm] = useState(false);
+    const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
     useEffect(() => {
         fetchInventory();
@@ -63,14 +66,19 @@ export default function InventoryPage() {
 
     const handleWithdraw = async (itemId: string) => {
         const tg = (window as any).Telegram?.WebApp;
-        if (!tg?.initDataUnsafe?.user) return;
+        if (!tg?.initDataUnsafe?.user || withdrawingId) return;
 
+        setWithdrawingId(itemId);
         const result = await withdrawItemAction(tg.initDataUnsafe.user.id.toString(), itemId);
+        setWithdrawingId(null);
+
         if (result.success) {
             setItems(prev => prev.map(i => i.id === itemId ? { ...i, status: 'WITHDRAWN' } : i));
             setSelectedItem(null);
+            setSuccessMessage(result.message || 'Успешно!');
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
         } else {
-            alert("Error withdrawing item");
+            alert(result.error || "Error withdrawing item");
         }
     };
 
@@ -229,9 +237,12 @@ export default function InventoryPage() {
                                     </button>
                                     <button
                                         onClick={() => handleWithdraw(selectedItem.id)}
-                                        className="steam-bevel h-14 bg-[var(--background)] text-[var(--foreground)] text-[11px] font-black uppercase tracking-[0.2em] active:translate-y-[1px] transition-none"
+                                        disabled={!!withdrawingId}
+                                        className="steam-bevel h-14 bg-[var(--background)] text-[var(--foreground)] text-[11px] font-black uppercase tracking-[0.2em] active:translate-y-[1px] transition-none flex items-center justify-center gap-2"
                                     >
-                                        {t.inventory.withdraw.toUpperCase()}
+                                        {withdrawingId === selectedItem.id ? (
+                                            <div className="w-5 h-5 border-2 border-[var(--foreground)]/20 border-t-[var(--foreground)] rounded-full animate-spin" />
+                                        ) : t.inventory.withdraw.toUpperCase()}
                                     </button>
                                 </div>
                             ) : (
@@ -302,6 +313,45 @@ export default function InventoryPage() {
                 )}
             </AnimatePresence>
 
+            {/* Success Modal */}
+            <AnimatePresence>
+                {successMessage && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[120] bg-black/95 flex items-center justify-center p-6 backdrop-blur-md"
+                        onClick={() => setSuccessMessage(null)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="steam-bevel p-8 w-full max-w-sm flex flex-col gap-6 text-center"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="w-16 h-16 steam-emboss flex items-center justify-center mx-auto text-green-500 bg-green-500/10">
+                                <Check size={32} />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-black text-[var(--foreground)] uppercase tracking-tight mb-4">
+                                    Успешно!
+                                </h2>
+                                <p className="text-xs text-[var(--foreground)]/60 font-medium leading-relaxed">
+                                    {successMessage}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setSuccessMessage(null)}
+                                className="steam-bevel h-12 bg-[var(--background)] text-[var(--foreground)] text-xs font-black uppercase tracking-widest active:translate-y-[1px] transition-none"
+                            >
+                                {t.common.close.toUpperCase()}
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Bottom Tabs Navigation */}
             <div className="fixed bottom-[calc(6.2rem+env(safe-area-inset-bottom))] left-0 right-0 z-50 px-6">
                 <div className={`${theme === 'dark'
@@ -314,36 +364,40 @@ export default function InventoryPage() {
                         { id: 'SOLD', label: 'Продано', icon: TrendingUp },
                         { id: 'WITHDRAWN', label: 'Выведено', icon: ExternalLink }
                     ].map(tab => (
-                        <button
+                        <motion.button
                             key={tab.id}
-                            onClick={() => {
+                            whileTap={{ scale: 0.95 }}
+                            onPointerDown={() => {
                                 setActiveTab(tab.id as any);
+                                // Non-blocking haptic
                                 const tg = (window as any).Telegram?.WebApp;
-                                if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+                                if (tg?.HapticFeedback) {
+                                    setTimeout(() => tg.HapticFeedback.impactOccurred('light'), 0);
+                                }
                             }}
-                            className={`flex flex-col items-center justify-center flex-1 py-1.5 rounded-xl transition-all duration-200 gap-1 relative overflow-hidden active:scale-95 active:translate-y-[1px] ${activeTab === tab.id
+                            className={`flex flex-col items-center justify-center flex-1 py-3 rounded-xl transition-all duration-150 gap-1 relative overflow-hidden touch-manipulation cursor-pointer ${activeTab === tab.id
                                 ? theme === 'dark'
-                                    ? 'bg-red-500/10 text-red-500 shadow-[inset_0_0_15px_rgba(239,68,68,0.1)]'
-                                    : 'steam-emboss bg-[var(--secondary)] text-[var(--accent)]'
+                                    ? 'bg-red-500/20 text-red-500 shadow-[inset_0_0_20px_rgba(239,68,68,0.2)]'
+                                    : 'steam-emboss bg-[var(--secondary)] text-[var(--accent)] border border-[var(--accent)]/40 shadow-lg'
                                 : theme === 'dark'
-                                    ? 'text-white/20 hover:text-white/40 active:bg-white/5'
-                                    : 'text-[var(--foreground)]/40 hover:text-[var(--foreground)] active:steam-emboss'
+                                    ? 'text-white/20 active:bg-white/5'
+                                    : 'text-[var(--foreground)]/30 active:bg-black/5'
                                 }`}
                         >
                             {activeTab === tab.id && theme === 'dark' && (
                                 <motion.div
                                     layoutId="tab-active-glow"
-                                    className="absolute inset-0 bg-red-500/5 blur-lg"
+                                    className="absolute inset-0 bg-red-500/10 blur-xl"
                                 />
                             )}
                             <tab.icon size={theme === 'dark' ? 18 : 16} className="relative z-10" />
                             <span className={`${theme === 'dark'
                                 ? 'text-[8px] font-black'
-                                : 'steam-header-text text-[7px] font-black'
+                                : 'steam-header-text text-[7.5px] font-black'
                                 } uppercase tracking-[0.1em] relative z-10`}>
                                 {tab.label}
                             </span>
-                        </button>
+                        </motion.button>
                     ))}
                 </div>
             </div>

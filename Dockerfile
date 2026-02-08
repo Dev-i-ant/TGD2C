@@ -48,6 +48,7 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/src ./src
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/next.config.ts ./next.config.ts
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 
 # We use tsx to run our custom server in production for simplicity in this TWA environment
 # In a larger scale app, we would transpile src/server.ts to JS first.

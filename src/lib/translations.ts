@@ -88,7 +88,8 @@ export const translations = {
             saving: 'Сохранение...',
             saved: 'Настройки сохранены!',
             find_url: 'Где найти мою ссылку?',
-            public_note: 'Внимание: Ссылка на обмен должна быть публичной.'
+            public_note: 'Внимание: Ссылка на обмен должна быть публичной.',
+            support: 'Поддержка'
         },
         tasks: {
             title: 'Задания',
@@ -231,7 +232,8 @@ export const translations = {
             saving: 'Saving...',
             saved: 'Settings saved!',
             find_url: 'Where is my link?',
-            public_note: 'Note: The trade link must be public.'
+            public_note: 'Note: The trade link must be public.',
+            support: 'Support'
         },
         tasks: {
             title: 'Tasks',

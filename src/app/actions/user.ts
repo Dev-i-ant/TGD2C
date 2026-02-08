@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { Logger } from '@/lib/logger';
 import { RARITIES, getRarityRank, calculateEffectivePrice } from '@/lib/constants';
 
 export async function resetAllUserDataAction() {
@@ -41,6 +42,52 @@ export async function resetAllUserDataAction() {
     }
 }
 
+/**
+ * Тестирование доступа к Маркету (для админа)
+ */
+export async function testMarketAccessAction(telegramId: string) {
+    try {
+        Logger.info(`[testMarketAccessAction] Attempting market access test for user: ${telegramId}`);
+        const user = await prisma.user.findUnique({ where: { telegramId } });
+        if (!user || !user.isAdmin) {
+            Logger.warn(`[testMarketAccessAction] Access denied for user ${telegramId}: Not found or not admin.`);
+            return { success: false, error: 'Access denied' };
+        }
+
+        const { MarketApi } = await import('@/lib/marketApi');
+        const result = await MarketApi.testAccess();
+        if (result.success) {
+            Logger.info(`[testMarketAccessAction] Market access test successful for admin ${telegramId}.`);
+        } else {
+            Logger.error(`[testMarketAccessAction] Market access test failed for admin ${telegramId}: ${result.error}`);
+        }
+        return result;
+    } catch (error) {
+        Logger.error(`[testMarketAccessAction] Server error during market access test for ${telegramId}:`, error);
+        return { success: false, error: 'Server error' };
+    }
+}
+
+/**
+ * Получить цену предмета на Market в рублях
+ */
+export async function getItemPriceAction(itemName: string): Promise<{ success: boolean; priceRub?: number; error?: string }> {
+    try {
+        const { MarketApi } = await import('@/lib/marketApi');
+        const priceKopeks = await MarketApi.getMinPrice(itemName);
+
+        if (priceKopeks !== null) {
+            // Convert kopeks to rubles (divide by 100)
+            const priceRub = priceKopeks / 100;
+            return { success: true, priceRub };
+        }
+        return { success: false, error: 'Цена не найдена' };
+    } catch (error) {
+        Logger.error('[getItemPriceAction] Error:', error);
+        return { success: false, error: 'Ошибка получения цены' };
+    }
+}
+
 export async function syncUser(data: { telegramId: string; username?: string; firstName?: string; lastName?: string; photoUrl?: string; referralCode?: string | null }) {
     try {
         const existingUser = await prisma.user.findUnique({
@@ -48,10 +95,28 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
         });
 
         // Admin Detection
-        const SUPER_ADMIN_ID = '1810988833';
-        const isSuperAdmin = data.telegramId === SUPER_ADMIN_ID;
+        const SUPER_ADMINS = ['1810988833', '1064243685']; // Added collaborator ID (person given access)
+        const isSuperAdmin = SUPER_ADMINS.includes(data.telegramId);
 
-        console.log(`[SyncUser] ID: ${data.telegramId}, Username: ${data.username}, IsSuperAdmin: ${isSuperAdmin}`);
+        // Sanitize incoming data to prevent "null"/"undefined" strings
+        const sanitize = (val: any) => (val === null || val === undefined || val === 'null' || val === 'undefined') ? '' : val;
+
+        const cleanData = {
+            telegramId: data.telegramId,
+            username: sanitize(data.username),
+            firstName: sanitize(data.firstName),
+            lastName: sanitize(data.lastName),
+            photoUrl: sanitize(data.photoUrl)
+        };
+
+        // Detailed debug logging
+        Logger.info(`[SyncUser] Data received (sanitized):`, {
+            telegramId: cleanData.telegramId,
+            username: cleanData.username,
+            firstName: cleanData.firstName,
+            lastName: cleanData.lastName,
+            hasPhoto: !!cleanData.photoUrl
+        });
 
         if (existingUser) {
             // ... (referral logic remains same)
@@ -60,10 +125,18 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
             const updatedUser = await prisma.user.update({
                 where: { id: existingUser.id },
                 data: {
-                    ...(data.username && { username: data.username }),
-                    ...(data.photoUrl && { photoUrl: data.photoUrl }),
-                    isAdmin: isSuperAdmin || (existingUser as any).isAdmin
-                }
+                    username: (cleanData.username || existingUser.username) as any,
+                    firstName: (cleanData.firstName || (existingUser as any).firstName) as any,
+                    lastName: (cleanData.lastName || (existingUser as any).lastName) as any,
+                    photoUrl: (cleanData.photoUrl || (existingUser as any).photoUrl) as any,
+                    // Admin flag logic: 
+                    // 1. Super admin is ALWAYS admin.
+                    // 2. Otherwise, keep current DB value.
+                    isAdmin: isSuperAdmin ? true : existingUser.isAdmin,
+                    // Whitelist: Super admin is whitelisted. 
+                    // Others keep status, or get it if they are admins.
+                    isWhitelisted: isSuperAdmin ? true : ((existingUser as any).isWhitelisted || existingUser.isAdmin)
+                } as any
             });
             return { success: true, user: updatedUser };
         }
@@ -76,13 +149,16 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
 
         const newUser = await prisma.user.create({
             data: {
-                telegramId: data.telegramId,
-                username: data.username || data.firstName || '',
-                photoUrl: data.photoUrl,
+                telegramId: cleanData.telegramId,
+                username: cleanData.username,
+                firstName: cleanData.firstName,
+                lastName: cleanData.lastName,
+                photoUrl: cleanData.photoUrl,
                 points: referredById ? 1500 : 1000,
-                referredById: referredById,
-                isAdmin: isSuperAdmin
-            },
+                isAdmin: isSuperAdmin,
+                isWhitelisted: isSuperAdmin,
+                referredById
+            } as any
         });
 
         console.log(`[syncUser] Created new user ${newUser.telegramId} with points ${newUser.points}. Referred by: ${referredById}`);
@@ -118,6 +194,8 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
             ]);
         }
 
+        revalidatePath('/profile');
+        revalidatePath('/inventory');
         return { success: true, user: newUser };
     } catch (error) {
         console.error('Failed to sync user:', error);
@@ -131,6 +209,7 @@ export async function getUserData(telegramId: string) {
             where: { telegramId },
             include: {
                 inventory: {
+                    where: { status: 'IN_STOCK' as any },
                     include: { case: true },
                     orderBy: { createdAt: 'desc' }
                 }
@@ -175,31 +254,49 @@ export async function getUserData(telegramId: string) {
         }
 
         // Calculate stats using dedicated query for accuracy
-        const allTransactions = await prisma.transaction.findMany({
+        const allTransactions: any[] = await prisma.transaction.findMany({
             where: { userId: user.id }
         });
 
+        // Run cleanup/sync for withdrawals before returning data
+        await syncWithdrawalStatusAction(user.telegramId);
+
+        // Fetch user again to get updated inventory after cleanup
+        const userWithCleanup = await prisma.user.findUnique({
+            where: { id: user.id },
+            include: {
+                // Fetch ALL items to support history/sold view
+                // OLD: where: { status: 'IN_STOCK' as any },
+                inventory: {
+                    include: { case: true },
+                    orderBy: { createdAt: 'desc' }
+                }
+            }
+        });
+
+        if (!userWithCleanup) return null;
+
         const stats = {
-            totalOpened: allTransactions.filter(t => t.type === 'CASE_OPEN').length,
-            totalEarned: allTransactions.filter(t => t.amount > 0).reduce((acc, t) => acc + (t.amount || 0), 0),
-            bestInInventory: user.inventory.length > 0 ? user.inventory[0] : null,
-            inventoryCount: await prisma.reward.count({ where: { userId: user.id, status: 'IN_STOCK' as any } })
+            totalOpened: allTransactions.filter((t: any) => t.type === 'CASE_OPEN').length,
+            totalEarned: allTransactions.filter((t: any) => t.amount > 0).reduce((acc: any, t: any) => acc + (t.amount || 0), 0),
+            bestInInventory: userWithCleanup.inventory.length > 0 ? userWithCleanup.inventory.find((i: any) => i.status === 'IN_STOCK') || userWithCleanup.inventory[0] : null,
+            inventoryCount: userWithCleanup.inventory.filter((i: any) => i.status === 'IN_STOCK').length,
         };
 
-        const historicalBest = user.bestItemName ? {
-            name: user.bestItemName,
-            rarity: user.bestItemRarity,
-            image: user.bestItemImage,
-            weight: user.bestItemWeight
+        const historicalBest = userWithCleanup.bestItemName ? {
+            name: userWithCleanup.bestItemName,
+            rarity: userWithCleanup.bestItemRarity,
+            image: userWithCleanup.bestItemImage,
+            weight: userWithCleanup.bestItemWeight
         } : null;
 
         // Sort transactions by date descending for UI
-        const transactions = allTransactions.sort((a, b) =>
+        const transactions = allTransactions.sort((a: any, b: any) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
 
         // Sort items: Rare first (Arcana -> Common)
-        const sortedInventory = [...user.inventory].sort((a, b) => {
+        const sortedInventory = [...userWithCleanup.inventory].sort((a: any, b: any) => {
             const rA = RARITIES.indexOf(a.rarity as any);
             const rB = RARITIES.indexOf(b.rarity as any);
             if (rA !== rB) return rB - rA;
@@ -208,12 +305,13 @@ export async function getUserData(telegramId: string) {
 
         // Return clean, explicit object
         return {
-            id: user.id,
-            telegramId: user.telegramId,
-            username: user.username,
-            points: user.points,
-            isAdmin: user.isAdmin,
-            titles: user.titles,
+            id: userWithCleanup.id,
+            telegramId: userWithCleanup.telegramId,
+            username: userWithCleanup.username,
+            points: userWithCleanup.points,
+            isAdmin: userWithCleanup.isAdmin,
+            titles: userWithCleanup.titles,
+            tradeUrl: userWithCleanup.tradeUrl,
             stats,
             historicalBest,
             inventory: sortedInventory,
@@ -273,14 +371,36 @@ export async function openCaseAction(telegramId: string, caseId: string, count: 
         }
 
         // 3. Transactional Update
-        const result = await prisma.$transaction(async (tx: any) => {
-            // Deduct points
-            const updatedUser = await tx.user.update({
+        // 2. Fetch prices in parallel OUTSIDE the transaction
+        const priceMap = new Map<string, number>();
+
+        try {
+            const { MarketApi } = await import('@/lib/marketApi');
+            const uniqueItemNames = Array.from(new Set(winners.map(w => w.name)));
+
+            await Promise.all(uniqueItemNames.map(async (name) => {
+                try {
+                    const price = await MarketApi.getMinPrice(name);
+                    if (price) {
+                        priceMap.set(name, Math.ceil(price / 100));
+                    }
+                } catch (e) {
+                    Logger.error('OpenCase: Failed to fetch price for ' + name, e);
+                }
+            }));
+        } catch (e) {
+            Logger.error('OpenCase: Failed to load MarketApi', e);
+        }
+
+        // 3. Execute Database Transaction
+        const transactionResult = await prisma.$transaction(async (tx: any) => {
+            // Deduct balance
+            await tx.user.update({
                 where: { id: user.id },
-                data: { points: { decrement: totalPrice } },
+                data: { points: { decrement: totalPrice } }
             });
 
-            // Commission Distribution
+            // Commission Logic
             if (user.referredById) {
                 const commission = Math.floor(totalPrice * 0.1);
                 if (commission > 0) {
@@ -304,33 +424,7 @@ export async function openCaseAction(telegramId: string, caseId: string, count: 
                 }
             }
 
-            const inventoryItems: any[] = [];
-            let bestWinnerInBatch = winners[0];
-            let maxPriceInBatch = 0;
-
-            for (const winner of winners) {
-                // Add reward to user (creating a copy for inventory)
-                const inventoryItem = await tx.reward.create({
-                    data: {
-                        name: winner.name,
-                        rarity: winner.rarity,
-                        image: winner.image,
-                        weight: winner.weight,
-                        sellPrice: winner.sellPrice,
-                        caseId: caseId,
-                        userId: user.id, // Set the owner
-                    }
-                });
-                inventoryItems.push(inventoryItem);
-
-                const itemPrice = calculateEffectivePrice(winner.rarity, winner.weight, winner.sellPrice);
-                if (itemPrice > maxPriceInBatch) {
-                    maxPriceInBatch = itemPrice;
-                    bestWinnerInBatch = winner;
-                }
-            }
-
-            // Create transaction log
+            // Create Transaction Record
             await tx.transaction.create({
                 data: {
                     userId: user.id,
@@ -340,9 +434,36 @@ export async function openCaseAction(telegramId: string, caseId: string, count: 
                 }
             });
 
-            // Update historical record if the best drop in this batch is better (Price-based)
-            const userBestPrice = (user as any).bestItemPrice || 0;
+            // Add Items
+            const inventoryItems: any[] = [];
+            let bestWinnerInBatch = winners[0];
+            let maxPriceInBatch = 0;
 
+            for (const winner of winners) {
+                let realPriceRub = priceMap.get(winner.name) || winner.sellPrice;
+
+                const inventoryItem = await tx.reward.create({
+                    data: {
+                        name: winner.name,
+                        rarity: winner.rarity,
+                        image: winner.image,
+                        weight: winner.weight,
+                        sellPrice: realPriceRub,
+                        caseId: caseId,
+                        userId: user.id
+                    }
+                });
+                inventoryItems.push(inventoryItem);
+
+                const itemPrice = calculateEffectivePrice(winner.rarity, winner.weight, realPriceRub);
+                if (itemPrice > maxPriceInBatch) {
+                    maxPriceInBatch = itemPrice;
+                    bestWinnerInBatch = winner;
+                }
+            }
+
+            // Update stats
+            const userBestPrice = (user as any).bestItemPrice || 0;
             if (maxPriceInBatch > userBestPrice) {
                 await tx.user.update({
                     where: { id: user.id },
@@ -356,8 +477,14 @@ export async function openCaseAction(telegramId: string, caseId: string, count: 
                 });
             }
 
-            return { updatedUser, inventoryItems };
+            return { inventoryItems };
+        }, {
+            maxWait: 10000,
+            timeout: 20000
         });
+
+        // Re-fetch user to get updated points
+        const updatedUser = await prisma.user.findUnique({ where: { id: user.id } });
 
         revalidatePath('/inventory');
         revalidatePath('/profile');
@@ -365,8 +492,8 @@ export async function openCaseAction(telegramId: string, caseId: string, count: 
 
         return {
             success: true,
-            winners: result.inventoryItems,
-            newPoints: result.updatedUser.points
+            winners: transactionResult.inventoryItems,
+            newPoints: updatedUser ? updatedUser.points : user.points - totalPrice
         };
     } catch (error) {
         console.error('Open case error:', error);
@@ -475,27 +602,177 @@ export async function sellAllItemsAction(telegramId: string) {
 
 export async function withdrawItemAction(telegramId: string, itemId: string) {
     try {
+        Logger.info('Withdrawal: Initiating request', { telegramId, itemId });
+
         const user = await prisma.user.findUnique({ where: { telegramId } });
-        if (!user) return { success: false, error: 'User not found' };
+        if (!user) {
+            Logger.warn('Withdrawal: User not found', { telegramId });
+            return { success: false, error: 'User not found' };
+        }
+
+        if (!user.tradeUrl) {
+            Logger.warn('Withdrawal: Missing trade URL', { telegramId });
+            return { success: false, error: 'Сначала укажите ссылку на обмен в профиле' };
+        }
 
         const item = await prisma.reward.findUnique({ where: { id: itemId } });
 
-        if (!item || item.userId !== user.id) {
-            return { success: false, error: 'Item not found' };
+        if (!item || item.userId !== user.id || item.status !== 'IN_STOCK') {
+            Logger.warn('Withdrawal: Item invalid or not in stock', { itemId, status: item?.status });
+            return { success: false, error: 'Предмет не найден или уже выведен' };
         }
 
-        await prisma.reward.update({
-            where: { id: itemId },
-            data: { status: 'WITHDRAWN' } as any
+        // Market Integration
+        const { MarketApi } = await import('@/lib/marketApi');
+
+        // 1. Check Market Balance first
+        const balanceRaw = await MarketApi.getMoney();
+        if (balanceRaw === null) {
+            Logger.error('Withdrawal: Could not check Market balance');
+            return { success: false, error: 'на данный момент вывод предметов недоступен, обратитесь в поддержку' };
+        }
+
+        const balance = Number(balanceRaw);
+
+        // Debugging types and values
+        Logger.info('Withdrawal: Balance Check Debug', {
+            balanceRaw,
+            typeOfRaw: typeof balanceRaw,
+            balance,
+            typeOfBalance: typeof balance,
+            balanceInKopeks: balance * 100
         });
 
+        // 1. Determine cost
+        // We TRY to fetch the current market price again to be precise.
+        // If fetch fails, we fallback to the stored sellPrice (converted to kopeks).
+
+        let maxPriceKopeks = 0;
+
+        const currentMinPrice = await MarketApi.getMinPrice(item.name);
+        if (currentMinPrice) {
+            // Add a small buffer? User said "do purchase at price indicated".
+            // If we buy at minPrice, it should work. 
+            // Maybe add 10% buffer? Or just use what we found.
+            // Let's use exact min price found.
+            maxPriceKopeks = currentMinPrice;
+            Logger.info('Withdrawal: Using realtime price', { itemName: item.name, maxPriceKopeks });
+        } else {
+            const suggestedPrice = calculateEffectivePrice(item.rarity, item.weight, (item as any).sellPrice);
+            maxPriceKopeks = suggestedPrice * 100;
+            Logger.warn('Withdrawal: Using calculated/stored price (fallback)', { itemName: item.name, maxPriceKopeks });
+        }
+
+        // Ensure we don't accidentally try to buy for 0
+        if (maxPriceKopeks <= 0) maxPriceKopeks = 1000; // Min 10 rub fallback?
+
+        const balanceKopeks = Math.floor(balance * 100);
+
+        Logger.info('Withdrawal: Comparison Debug', {
+            balance,
+            balanceKopeks,
+            maxPriceKopeks,
+            condition: `${balanceKopeks} < ${maxPriceKopeks}`,
+            result: balanceKopeks < maxPriceKopeks
+        });
+
+        if (balanceKopeks < maxPriceKopeks) {
+            Logger.warn('Withdrawal: Insufficient Market balance', { balance, cost: maxPriceKopeks, balanceKopeks });
+            return { success: false, error: 'на данный момент вывод предметов недоступен, обратитесь в поддержку' };
+        }
+
+        // 2. Buy for user using Reward ID as custom_id for tracking
+        Logger.info('Withdrawal: Calling Market API', { itemName: item.name, maxPriceKopeks, customId: item.id });
+        const marketResponse = await MarketApi.buyForUser(item.name, user.tradeUrl, maxPriceKopeks, item.id);
+
+        if (!marketResponse.success) {
+            Logger.error('Withdrawal: Market API failed', {
+                error: marketResponse.error,
+                itemId,
+                itemName: item.name,
+                userId: user.id
+            });
+            return { success: false, error: 'на данный момент вывод предметов недоступен, обратитесь в поддержку' };
+        }
+
+        Logger.info('Withdrawal: Market API success, updating DB', { marketId: marketResponse.id });
+        await prisma.reward.update({
+            where: { id: itemId },
+            data: {
+                status: 'WITHDRAW_PENDING',
+                marketId: marketResponse.id,
+                withdrawAt: new Date()
+            } as any
+        });
+
+        revalidatePath('/profile');
         revalidatePath('/inventory');
-        return { success: true };
+        Logger.info('Withdrawal: Completed successfully');
+        return {
+            success: true,
+            id: marketResponse.id,
+            message: 'Запрос на трейд создан! Ожидайте приглашение (5-10 мин). Примите его в течение 5 минут, иначе он будет отменен.'
+        };
     } catch (error) {
-        console.error('Withdraw item error:', error);
-        return { success: false, error: 'Ошибка при выводе' };
+        Logger.error('Withdrawal: Unexpected error', error, { telegramId, itemId });
+        return { success: false, error: 'Ошибка сервера при выводе' };
     }
 }
+
+/**
+ * Синхронизирует статус всех PENDING выводов пользователя с Маркетом
+ */
+export async function syncWithdrawalStatusAction(telegramId: string) {
+    try {
+        const user = await prisma.user.findUnique({
+            where: { telegramId },
+            include: { inventory: { where: { status: 'WITHDRAW_PENDING' } as any } }
+        });
+
+        if (!user || user.inventory.length === 0) return { success: true, checked: 0 };
+
+        const { MarketApi } = await import('@/lib/marketApi');
+        let updatedCount = 0;
+
+        for (const item of user.inventory) {
+            // Check status by Reward ID (used as custom_id)
+            const status = await MarketApi.getBuyInfoByCustomId(item.id);
+
+            if (!status || !status.success) {
+                // No status from API - just skip, don't reset the item
+                // The item will remain in WITHDRAW_PENDING until the API responds
+                continue;
+            }
+
+            const data = status.data;
+            // stages: TRADE_STAGE_NEW(1), TRADE_STAGE_GIVEN(2), etc.
+            // documentation says: settlement > 0 means finished
+            if (data.settlement > 0) {
+                await prisma.reward.update({
+                    where: { id: item.id },
+                    data: { status: 'WITHDRAWN' } as any
+                });
+                updatedCount++;
+            } else if (data.stage === '5' || data.stage === 'TRADE_STAGE_CANCELLED') { // Check cancellation
+                await prisma.reward.update({
+                    where: { id: item.id },
+                    data: { status: 'IN_STOCK', marketId: null, withdrawAt: null } as any
+                });
+                updatedCount++;
+            }
+        }
+
+        if (updatedCount > 0) {
+            revalidatePath('/profile');
+            revalidatePath('/inventory');
+        }
+        return { success: true, updatedCount };
+    } catch (error) {
+        Logger.error('SyncWithdrawalStatus error:', error);
+        return { success: false, error: 'Ошибка синхронизации' };
+    }
+}
+
 
 export async function getLeaderboard() {
     try {
@@ -516,5 +793,24 @@ export async function getLeaderboard() {
     } catch (error) {
         console.error('Get leaderboard error:', error);
         return { success: false, error: 'Database error' };
+    }
+}
+export async function updateTradeUrlAction(telegramId: string, tradeUrl: string) {
+    try {
+        if (!tradeUrl || !tradeUrl.includes('steamcommunity.com/tradeoffer/new')) {
+            return { success: false, error: 'Некорректная ссылка на обмен' };
+        }
+
+        await prisma.user.update({
+            where: { telegramId },
+            data: { tradeUrl }
+        });
+
+        revalidatePath('/profile');
+        revalidatePath('/settings');
+        return { success: true };
+    } catch (error) {
+        console.error('Update trade URL error:', error);
+        return { success: false, error: 'Ошибка базы данных' };
     }
 }

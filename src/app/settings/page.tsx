@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PageHeader from '@/components/ui/PageHeader';
 import { Link2, Save, ExternalLink, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '@/components/LanguageProvider';
+import { getUserData, updateTradeUrlAction } from '../actions/user';
 
 export default function SettingsPage() {
     const { t, language, setLanguage } = useTranslation();
@@ -11,14 +12,37 @@ export default function SettingsPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
+    useEffect(() => {
+        fetchTradeUrl();
+    }, []);
+
+    const fetchTradeUrl = async () => {
+        const tg = (window as any).Telegram?.WebApp;
+        if (!tg?.initDataUnsafe?.user) return;
+
+        // We use getUserData which now returns tradeUrl (or we should update it to do so)
+        const data = await getUserData(tg.initDataUnsafe.user.id.toString());
+        if (data?.tradeUrl) {
+            setTradeUrl(data.tradeUrl);
+        }
+    };
+
     const handleSave = async () => {
+        const tg = (window as any).Telegram?.WebApp;
+        if (!tg?.initDataUnsafe?.user) return;
+
         setIsSaving(true);
-        // Simulate API call
-        setTimeout(() => {
-            setIsSaving(false);
+        const result = await updateTradeUrlAction(tg.initDataUnsafe.user.id.toString(), tradeUrl);
+
+        setIsSaving(false);
+        if (result.success) {
             setStatus('success');
             setTimeout(() => setStatus('idle'), 3000);
-        }, 1500);
+        } else {
+            alert(result.error || 'Ошибка при сохранении');
+            setStatus('error');
+            setTimeout(() => setStatus('idle'), 3000);
+        }
     };
 
     return (
@@ -102,6 +126,23 @@ export default function SettingsPage() {
                 <p className="text-[10px] text-[var(--foreground)]/30 text-center font-bold uppercase leading-relaxed px-4">
                     {t.settings.public_note}
                 </p>
+
+                {/* Support Link */}
+                <button
+                    onClick={() => {
+                        if (window.Telegram?.WebApp) {
+                            // Using a common support pattern for TG bots
+                            const supportUrl = 'https://t.me/Open_My_Case_bot'; // Default to bot, user can adjust
+                            window.Telegram.WebApp.openTelegramLink(supportUrl);
+                        } else {
+                            window.open('https://t.me/Open_My_Case_bot', '_blank');
+                        }
+                    }}
+                    className="flex items-center justify-center gap-2 py-4 border border-white/5 bg-white/5 rounded-xl text-[var(--foreground)]/60 hover:text-[var(--foreground)] transition-colors active:scale-95"
+                >
+                    <ExternalLink size={16} />
+                    <span className="text-[10px] font-black uppercase tracking-wider">{t.settings.support}</span>
+                </button>
             </div>
         </div>
     );

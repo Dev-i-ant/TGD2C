@@ -13,6 +13,8 @@ model User {
   id           String        @id @default(cuid())
   telegramId   String        @unique
   username     String?
+  firstName    String?
+  lastName     String?
   photoUrl     String?
   points       Int           @default(0)
   tradeUrl     String?
@@ -21,6 +23,7 @@ model User {
   transactions Transaction[]
   battles      BattleParticipant[]
   isAdmin      Boolean       @default(false)
+  isWhitelisted Boolean     @default(false)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -98,7 +101,9 @@ model Reward {
   image     String?
   weight    Int      // Drop chance weight
   sellPrice Int?     // Optional custom sell price
-  status    String   @default("IN_STOCK") // "IN_STOCK", "SOLD", "WITHDRAWN"
+  status    String   @default("IN_STOCK") // "IN_STOCK", "SOLD", "WITHDRAWN", "WITHDRAW_PENDING", "WITHDRAW_ERROR"
+  marketId  String?  // ID from market.dota2.net
+  withdrawAt DateTime? // When the withdrawal was initiated
   caseId    String
   case      Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
   userId    String?

@@ -6,11 +6,15 @@ import { Home, Grid, Package, User, Users, Gamepad2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTheme } from '@/components/ThemeProvider';
 import { useTranslation } from '@/components/LanguageProvider';
+import { useUser } from '@/components/UserContext';
 
 export default function BottomNav() {
     const pathname = usePathname();
     const { theme } = useTheme();
     const { t } = useTranslation();
+    const { isAdmin } = useUser();
+
+    if (!isAdmin) return null;
 
     const NAV_ITEMS = [
         { label: t.nav.home, path: '/', icon: Home },

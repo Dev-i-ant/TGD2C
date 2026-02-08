@@ -6,19 +6,18 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - DATABASE_URL=file:/app/dev_stg.db
+        - DATABASE_URL=file:/app/prisma/dev.db
         - NEXT_PUBLIC_APP_URL=https://back-loot.online
         - NEXT_PUBLIC_BOT_USERNAME=back_loot_bot
     ports:
       - "3001:3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=file:/app/dev_stg.db
-      - NEXT_PUBLIC_APP_URL=https://back-loot.online
-      - NEXT_PUBLIC_BOT_USERNAME=back_loot_bot
+      - DATABASE_URL=file:/app/prisma/dev.db
+    env_file:
+      - .env
     volumes:
       - ./prisma:/app/prisma
-      - ./dev_stg.db:/app/dev_stg.db
     restart: unless-stopped
     networks:
       - dev-network
@@ -35,12 +34,12 @@ services:
       context: .
       dockerfile: Dockerfile.bot
     environment:
-      - TELEGRAM_BOT_TOKEN=7625362698:AAHTaclD0mx7ecPvdRm1A94M6UXd9cnvt1c
-      - NEXT_PUBLIC_APP_URL=https://back-loot.online
-      - DATABASE_URL=file:/app/dev_stg.db
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/prisma/dev.db
+    env_file:
+      - .env
     volumes:
       - ./prisma:/app/prisma
-      - ./dev_stg.db:/app/dev_stg.db
     restart: unless-stopped
     depends_on:
       web-dev:

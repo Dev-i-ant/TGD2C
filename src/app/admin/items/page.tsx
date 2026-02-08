@@ -175,15 +175,39 @@ export default function GlobalItemsPage() {
                     </div>
 
                     <div className="flex flex-col gap-5">
+                        {/* Link Parser */}
+                        <div className="flex flex-col gap-2 p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl">
+                            <label className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Быстрое заполнение из ссылки Market (опционально)</label>
+                            <input
+                                type="text"
+                                placeholder="Вставь ссылку https://market.dota2.net/item/..."
+                                onChange={async (e) => {
+                                    const url = e.target.value;
+                                    const match = url.match(/item\/([^/?]+)/);
+                                    if (match) {
+                                        const hashName = decodeURIComponent(match[1]);
+                                        // Only fill if the fields are currently empty
+                                        if (!name) setName(hashName);
+                                        if (!image) setImage(`https://cdn.dota2.net/market/items/570/${encodeURIComponent(hashName)}?width=200&height=200`);
+                                    }
+                                }}
+                                className="w-full h-10 bg-white/5 border border-white/10 rounded-lg px-4 text-white text-xs focus:border-indigo-500/50 outline-none"
+                            />
+                            <p className="text-[7px] text-white/30 font-medium px-1">💡 Ссылка заполнит только пустые поля. Редактируй вручную после вставки.</p>
+                        </div>
+
                         <div className="flex flex-col gap-3">
                             <label className="text-xs font-black text-white/40 uppercase tracking-widest px-2">Название предмета</label>
                             <input
                                 type="text"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                placeholder="Например: Dragonclaw Hook"
+                                placeholder="Точное English название (hash_name)"
                                 className="w-full h-14 bg-white/5 border border-white/10 rounded-xl px-6 text-white text-base focus:border-[var(--accent)]/50 outline-none transition-all"
                             />
+                            <p className="text-[8px] text-white/30 font-bold px-2 -mt-1">
+                                ⚠️ Для вывода используй ТОЧНОЕ английское название предмета с Market (hash_name). Пример: "Inscribed Leviathan Whale Blade"
+                            </p>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">

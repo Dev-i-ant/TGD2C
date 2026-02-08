@@ -279,127 +279,117 @@ export default function CaseItemsPage() {
                     <span className="text-[11px] font-black uppercase tracking-widest">Выбрать из библиотеки</span>
                 </button>
 
-                {/* Form to add/edit item */}
-                <div className={`dota-card p-6 border-dashed bg-transparent flex flex-col gap-4 transition-all ${editingReward ? 'border-[var(--accent)] ring-1 ring-[var(--accent)]/20 shadow-[0_0_20px_rgba(var(--accent-rgb),0.1)]' : 'border-white/10'}`}>
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-[10px] font-black text-white/40 uppercase tracking-widest">
-                            {editingReward ? 'Редактировать предмет' : 'Создать предмет в кейсе'}
-                        </h3>
-                        {editingReward && (
-                            <button onClick={resetForm} className="text-[10px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1">
-                                <X size={12} /> Отмена
-                            </button>
-                        )}
-                    </div>
+                {/* Edit Item Form (only when editing) */}
+                <AnimatePresence>
+                    {editingReward && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="dota-card p-6 border-dashed border-[var(--accent)] ring-1 ring-[var(--accent)]/20 shadow-[0_0_20px_rgba(var(--accent-rgb),0.1)] flex flex-col gap-4 overflow-hidden"
+                        >
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+                                    Редактировать предмет
+                                </h3>
+                                <button onClick={resetForm} className="text-[10px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1">
+                                    <X size={12} /> Отмена
+                                </button>
+                            </div>
 
-                    <div className="flex flex-col gap-5">
-                        <div className="flex flex-col gap-3">
-                            <label className="text-xs font-black text-white/40 uppercase tracking-widest px-2">Название предмета</label>
-                            <input
-                                type="text"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                placeholder="Название предмета"
-                                className="w-full h-14 bg-white/5 border border-white/10 rounded-xl px-6 text-white text-base focus:border-[var(--accent)]/50 outline-none transition-all"
-                            />
-                        </div>
+                            <div className="flex flex-col gap-5">
+                                <div className="flex flex-col gap-3">
+                                    <label className="text-xs font-black text-white/40 uppercase tracking-widest px-2">Название предмета</label>
+                                    <input
+                                        type="text"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        placeholder="Точное English название (hash_name)"
+                                        className="w-full h-14 bg-white/5 border border-white/10 rounded-xl px-6 text-white text-base focus:border-[var(--accent)]/50 outline-none transition-all"
+                                    />
+                                </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="flex flex-col gap-3">
-                                <label className="text-xs font-black text-white/40 uppercase tracking-widest px-2">Редкость</label>
-                                <div className="relative">
-                                    <select
-                                        value={rarity}
-                                        onChange={(e) => setRarity(e.target.value)}
-                                        className="w-full h-14 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-base focus:border-[var(--accent)]/50 outline-none appearance-none"
-                                    >
-                                        {RARITIES.map(r => <option key={r} value={r}>{r}</option>)}
-                                    </select>
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-20">
-                                        <Filter size={14} />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="flex flex-col gap-3">
+                                        <label className="text-xs font-black text-white/40 uppercase tracking-widest px-2">Редкость</label>
+                                        <div className="relative">
+                                            <select
+                                                value={rarity}
+                                                onChange={(e) => setRarity(e.target.value)}
+                                                className="w-full h-14 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-base focus:border-[var(--accent)]/50 outline-none appearance-none"
+                                            >
+                                                {RARITIES.map(r => <option key={r} value={r}>{r}</option>)}
+                                            </select>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-20">
+                                                <Filter size={14} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-3">
+                                        <label className="text-xs font-black text-white/40 uppercase tracking-widest px-2">Шанс (вес)</label>
+                                        <div className="relative group">
+                                            <input
+                                                type="number"
+                                                value={weight}
+                                                onChange={handleWeightChange}
+                                                className={`w-full h-14 bg-white/5 border rounded-xl px-6 pr-12 text-white text-base outline-none focus:border-[var(--accent)]/50 transition-all ${isAutoWeight ? 'border-green-500/30' : 'border-white/10'}`}
+                                            />
+                                            <button
+                                                onClick={toggleAutoWeight}
+                                                className={`absolute right-4 top-1/2 -translate-y-1/2 transition-colors z-10 ${isAutoWeight ? 'text-green-500' : 'text-white/20 hover:text-white/40'}`}
+                                                title={isAutoWeight ? 'Авто-расчет включен' : 'Включить авто-расчет'}
+                                            >
+                                                <Wand2 size={16} />
+                                            </button>
+                                            {isAutoWeight && (
+                                                <span className="absolute -top-2 left-4 px-1.5 py-0.5 bg-green-500 text-black text-[7px] font-black rounded-sm uppercase tracking-tighter pointer-events-none">
+                                                    AUTO
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="flex flex-col gap-3">
-                                <label className="text-xs font-black text-white/40 uppercase tracking-widest px-2">Шанс (вес)</label>
-                                <div className="relative group">
+
+                                <div className="flex flex-col gap-3">
+                                    <label className="text-xs font-black text-white/40 uppercase tracking-widest px-2">Цена выкупа (BP)</label>
                                     <input
                                         type="number"
-                                        value={weight}
-                                        onChange={handleWeightChange}
-                                        className={`w-full h-14 bg-white/5 border rounded-xl px-6 pr-12 text-white text-base outline-none focus:border-[var(--accent)]/50 transition-all ${isAutoWeight ? 'border-green-500/30' : 'border-white/10'}`}
+                                        value={sellPrice}
+                                        onChange={handlePriceChange}
+                                        placeholder="Цена выкупа (опционально)"
+                                        className="w-full h-14 bg-white/5 border border-white/10 rounded-xl px-6 text-white text-base focus:border-[var(--accent)]/50 outline-none"
                                     />
-                                    <button
-                                        onClick={toggleAutoWeight}
-                                        className={`absolute right-4 top-1/2 -translate-y-1/2 transition-colors z-10 ${isAutoWeight ? 'text-green-500' : 'text-white/20 hover:text-white/40'}`}
-                                        title={isAutoWeight ? 'Авто-расчет включен' : 'Включить авто-расчет'}
-                                    >
-                                        <Wand2 size={16} />
-                                    </button>
-                                    {isAutoWeight && (
-                                        <span className="absolute -top-2 left-4 px-1.5 py-0.5 bg-green-500 text-black text-[7px] font-black rounded-sm uppercase tracking-tighter pointer-events-none">
-                                            AUTO
-                                        </span>
-                                    )}
                                 </div>
+
+                                <div className="flex flex-col gap-3">
+                                    <label className="text-xs font-black text-white/40 uppercase tracking-widest px-2">Картинка (URL)</label>
+                                    <input
+                                        type="text"
+                                        value={image}
+                                        onChange={(e) => setImage(e.target.value)}
+                                        placeholder="https://..."
+                                        className="w-full h-14 bg-white/5 border border-white/10 rounded-xl px-6 text-white text-base focus:border-[var(--accent)]/50 outline-none"
+                                    />
+                                </div>
+
+                                <button
+                                    onClick={handleSaveEdit}
+                                    disabled={isSaving}
+                                    className="steam-bevel h-14 flex items-center justify-center gap-2 mt-2 bg-green-600 text-white active:translate-y-[1px]"
+                                >
+                                    {isSaving ? (
+                                        <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        <>
+                                            <Save size={18} />
+                                            <span className="text-[11px] font-black uppercase tracking-widest">Сохранить изменения</span>
+                                        </>
+                                    )}
+                                </button>
                             </div>
-                        </div>
-
-                        <div className="flex flex-col gap-3">
-                            <label className="text-xs font-black text-white/40 uppercase tracking-widest px-2">Цена выкупа (BP)</label>
-                            <input
-                                type="number"
-                                value={sellPrice}
-                                onChange={handlePriceChange}
-                                placeholder="Цена выкупа (опционально)"
-                                className="w-full h-14 bg-white/5 border border-white/10 rounded-xl px-6 text-white text-base focus:border-[var(--accent)]/50 outline-none"
-                            />
-                        </div>
-
-                        <div className="flex flex-col gap-3">
-                            <label className="text-xs font-black text-white/40 uppercase tracking-widest px-2">Картинка (URL)</label>
-                            <input
-                                type="text"
-                                value={image}
-                                onChange={(e) => setImage(e.target.value)}
-                                placeholder="https://..."
-                                className="w-full h-14 bg-white/5 border border-white/10 rounded-xl px-6 text-white text-base focus:border-[var(--accent)]/50 outline-none"
-                            />
-                        </div>
-
-                        {editingReward ? (
-                            <button
-                                onClick={handleSaveEdit}
-                                disabled={isSaving}
-                                className="steam-bevel h-14 flex items-center justify-center gap-2 mt-2 bg-green-600 text-white active:translate-y-[1px]"
-                            >
-                                {isSaving ? (
-                                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                                ) : (
-                                    <>
-                                        <Save size={18} />
-                                        <span className="text-[11px] font-black uppercase tracking-widest">Сохранить изменения</span>
-                                    </>
-                                )}
-                            </button>
-                        ) : (
-                            <button
-                                onClick={handleAdd}
-                                disabled={isSaving}
-                                className="steam-bevel h-16 flex items-center justify-center gap-2 mt-2 bg-[var(--accent)] text-white active:translate-y-[1px] shadow-lg shadow-black/20"
-                            >
-                                {isSaving ? (
-                                    <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                                ) : (
-                                    <>
-                                        <Plus size={20} />
-                                        <span className="text-[11px] font-black uppercase tracking-widest">Добавить в кейс</span>
-                                    </>
-                                )}
-                            </button>
-                        )}
-                    </div>
-                </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* Sorting & Filters */}
                 <div className="flex flex-col gap-4 px-2">

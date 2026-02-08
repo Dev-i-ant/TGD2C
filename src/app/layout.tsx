@@ -9,10 +9,11 @@ export const metadata: Metadata = {
   description: "Верни свою удачу — кейсы Dota 2",
 };
 
-import BottomNav from "@/components/layout/BottomNav";
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { LanguageProvider } from '@/components/LanguageProvider';
 import TelegramProvider from "@/components/TelegramProvider";
+import { UserProvider } from "@/components/UserContext";
+import AppContent from "./AppContent";
 
 export default function RootLayout({
   children,
@@ -32,10 +33,13 @@ export default function RootLayout({
         <ThemeProvider>
           <LanguageProvider>
             <TelegramProvider>
-              <main className="max-w-md mx-auto min-h-screen relative pb-28">
-                {children}
-                <BottomNav />
-              </main>
+              <UserProvider>
+                <main className="max-w-md mx-auto min-h-screen relative">
+                  <AppContent>
+                    {children}
+                  </AppContent>
+                </main>
+              </UserProvider>
             </TelegramProvider>
           </LanguageProvider>
         </ThemeProvider>

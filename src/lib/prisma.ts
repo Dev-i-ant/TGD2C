@@ -2,9 +2,9 @@ import { PrismaClient } from '@prisma/client'
 import { PrismaLibSql } from '@prisma/adapter-libsql'
 import path from 'path'
 
-// Build absolute path to database with proper file:// protocol
-const dbPath = path.resolve(process.cwd(), 'prisma', 'dev.db');
-const dbUrl = `file://${dbPath}`;
+// Use DATABASE_URL from environment or fallback to local path
+const defaultDbPath = path.resolve(process.cwd(), 'prisma', 'dev.db');
+const dbUrl = process.env.DATABASE_URL || `file://${defaultDbPath}`;
 
 console.log('[Prisma] Initializing with database:', dbUrl);
 

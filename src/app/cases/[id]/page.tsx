@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import PageHeader from '@/components/ui/PageHeader';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Sparkles } from 'lucide-react';
-import { openCaseAction, sellItemAction } from '../../actions/user';
+import { openCaseAction, sellItemAction, getItemPriceAction } from '../../actions/user';
 import { getCaseById, getCaseRewards } from '../../admin/cases/actions';
 
 import { RARITIES, RARITY_COLORS as GLOBAL_COLORS } from '@/lib/constants';
@@ -41,6 +41,7 @@ export default function CaseOpenPage() {
     const [isOpening, setIsOpening] = useState(false);
     const [isSelling, setIsSelling] = useState(false);
     const [wonRewards, setWonRewards] = useState<any[] | null>(null);
+    const [marketPrices, setMarketPrices] = useState<Record<string, number>>({});
 
     // Per-line states
     const [rollItemsList, setRollItemsList] = useState<any[][]>([]);
@@ -73,6 +74,26 @@ export default function CaseOpenPage() {
         }
         loadCase();
     }, [id]);
+
+    // Fetch market prices when we have won rewards
+    useEffect(() => {
+        async function fetchPrices() {
+            if (!wonRewards || wonRewards.length === 0) return;
+
+            const prices: Record<string, number> = {};
+            for (const reward of wonRewards) {
+                // Skip if we already have this price
+                if (prices[reward.name]) continue;
+
+                const result = await getItemPriceAction(reward.name);
+                if (result.success && result.priceRub) {
+                    prices[reward.name] = result.priceRub;
+                }
+            }
+            setMarketPrices(prices);
+        }
+        fetchPrices();
+    }, [wonRewards]);
 
     const generateStaticRoll = (items: any[], count: number) => {
         if (!items || items.length === 0) return;
@@ -246,17 +267,19 @@ export default function CaseOpenPage() {
         const idleScrollDistance = rollItems.length > 0 ? (rollItems.length / 2) * ITEM_FULL_WIDTH : 0;
         const baseOffset = -(4 * ITEM_FULL_WIDTH);
 
+        // Idle animation: scroll items to the LEFT continuously (like a conveyor belt)
+        // Start from 0 and go to negative idleScrollDistance, then repeat
         const animationProps = isOpening
             ? { x: targetX }
             : wonRewards
                 ? { x: targetX }
-                : { x: [baseOffset - startOffset, baseOffset - startOffset - idleScrollDistance] };
+                : { x: -idleScrollDistance };
 
         const transitionProps = isOpening
             ? { duration: 6, ease: [0.1, 0, 0.1, 1] as any }
             : wonRewards
                 ? { duration: 0 }
-                : { duration: 80, ease: "linear", repeat: Infinity } as any;
+                : { duration: 20, ease: "linear", repeat: Infinity, repeatType: "loop" } as any;
 
         return (
             <div key={index} className="w-full relative py-2">
@@ -273,7 +296,8 @@ export default function CaseOpenPage() {
 
                     <motion.div
                         key={rollKey}
-                        initial={{ x: isOpening || wonRewards ? baseOffset : baseOffset - startOffset }}
+                        // Idle: start at 0, animate to -idleScrollDistance, loop seamlessly
+                        initial={{ x: 0 }}
                         animate={animationProps}
                         transition={transitionProps}
                         className="flex gap-2 px-[50%] min-w-max items-center"
@@ -422,6 +446,9 @@ export default function CaseOpenPage() {
                                             <div className="text-center">
                                                 <h3 className="text-[8px] font-black text-[var(--foreground)] mb-0.5 uppercase tracking-tight truncate w-24">{reward.name}</h3>
                                                 <p className={`text-[6px] font-black uppercase tracking-widest ${(RARITY_COLORS[reward.rarity] || 'bg-gray-500').replace('bg-', 'text-')}`}>{reward.rarity}</p>
+                                                {marketPrices[reward.name] !== undefined && (
+                                                    <p className="text-[9px] font-black text-green-500 mt-1">~{marketPrices[reward.name].toFixed(0)} ₽</p>
+                                                )}
                                             </div>
                                         </div>
                                     ))}

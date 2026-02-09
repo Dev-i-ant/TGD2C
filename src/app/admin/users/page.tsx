@@ -5,6 +5,7 @@ import PageHeader from '@/components/ui/PageHeader';
 import { motion } from 'framer-motion';
 import { Users, Search, Edit2, Wallet, Package, History, Copy, Check, BadgePlus, Shield, ShieldAlert, ShieldCheck, UserPlus, UserMinus } from 'lucide-react';
 import { getAllUsers, updateUserPoints, updateUserTitles, toggleAdminStatus, toggleWhitelistStatus } from './actions';
+import { SUPER_ADMINS } from '@/lib/constants';
 
 export default function AdminUsersPage() {
     const [users, setUsers] = useState<any[]>([]);
@@ -13,7 +14,6 @@ export default function AdminUsersPage() {
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [currentAdminId, setCurrentAdminId] = useState<string | null>(null);
 
-    const SUPER_ADMIN_ID = '1810988833';
 
     useEffect(() => {
         loadUsers();
@@ -190,7 +190,7 @@ export default function AdminUsersPage() {
 
                                 {/* Actions Footer: Responsive Grid */}
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 pt-3 border-t border-[var(--foreground)]/5">
-                                    {currentAdminId === SUPER_ADMIN_ID && (
+                                    {currentAdminId && SUPER_ADMINS.includes(currentAdminId) && (
                                         <>
                                             <button
                                                 onClick={() => handleToggleAdmin(user.id, user.isAdmin, user.username || user.telegramId)}

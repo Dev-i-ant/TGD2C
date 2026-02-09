@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { Logger } from '@/lib/logger';
-import { RARITIES, getRarityRank, calculateEffectivePrice } from '@/lib/constants';
+import { RARITIES, getRarityRank, calculateEffectivePrice, SUPER_ADMINS } from '@/lib/constants';
 
 export async function resetAllUserDataAction() {
     try {
@@ -95,7 +95,6 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
         });
 
         // Admin Detection
-        const SUPER_ADMINS = ['1810988833', '1064243685']; // Added collaborator ID (person given access)
         const isSuperAdmin = SUPER_ADMINS.includes(data.telegramId);
 
         // Sanitize incoming data to prevent "null"/"undefined" strings
@@ -309,7 +308,7 @@ export async function getUserData(telegramId: string) {
             telegramId: userWithCleanup.telegramId,
             username: userWithCleanup.username,
             points: userWithCleanup.points,
-            isAdmin: userWithCleanup.isAdmin,
+            isAdmin: userWithCleanup.isAdmin || SUPER_ADMINS.includes(userWithCleanup.telegramId),
             titles: userWithCleanup.titles,
             tradeUrl: userWithCleanup.tradeUrl,
             stats,

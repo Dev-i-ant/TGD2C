@@ -11,7 +11,11 @@ RUN npm config set fetch-retry-maxtimeout 600000 && \
     npm install --omit=dev --no-audit --no-fund
 
 # Copy source code
-COPY src/bot ./src/bot
+# Copy config files
+COPY tsconfig.json ./
+
+# Copy source code
+COPY src ./src
 COPY prisma ./prisma
 
 # Generate Prisma Client

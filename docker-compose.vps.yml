@@ -11,6 +11,8 @@ services:
         - NEXT_PUBLIC_BOT_USERNAME=back_loot_bot
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
       - DATABASE_URL=file:/app/prisma/prod.db
@@ -33,6 +35,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.bot
+    env_file:
+      - .env
     environment:
       - TELEGRAM_BOT_TOKEN=8291787927:AAGAKyE_B8xjoT5r_Ogwj2Otv2A_93qWiQA
       - NEXT_PUBLIC_APP_URL=https://back-loot.ru

@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { syncUser } from '@/app/actions/user';
+import { SUPER_ADMINS } from '@/lib/constants';
 
 interface UserContextType {
     isAdmin: boolean;
@@ -29,7 +30,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const tgUser = tg.initDataUnsafe?.user;
 
         if (tgUser) {
-            // Priority 1: Immediate state from Telegram for fast UI
+            const isSuperAdmin = SUPER_ADMINS.includes(tgUser.id.toString());
             const initialUser = {
                 telegramId: tgUser.id.toString(),
                 username: tgUser.username,
@@ -37,8 +38,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
                 lastName: tgUser.last_name,
                 photoUrl: tgUser.photo_url,
                 points: points || 0,
-                isAdmin: isAdmin
+                isAdmin: isSuperAdmin || isAdmin
             };
+            if (isSuperAdmin) setIsAdmin(true);
             setUser(initialUser);
 
             try {

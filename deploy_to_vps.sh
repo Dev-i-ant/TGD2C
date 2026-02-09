@@ -7,13 +7,17 @@ rsync -avz -e "ssh -i ~/.ssh/reg_ru" \
     --exclude ".next" \
     --exclude ".git" \
     --exclude ".env*" \
-    ./ root@89.111.175.31:/root/mini_app_prod/
+    ./ root@89.111.175.31:/opt/mini_app_prod/
 
-scp -i ~/.ssh/reg_ru .env.prod root@89.111.175.31:/root/mini_app_prod/.env
+if [ -f ".env.prod" ]; then
+    scp -i ~/.ssh/reg_ru .env.prod root@89.111.175.31:/opt/mini_app_prod/.env
+else
+    echo "⚠️ .env.prod not found locally, skipping upload (assuming remote .env exists)"
+fi
 
 echo "🛠️ Пересборка и запуск на сервере..."
 ssh -i ~/.ssh/reg_ru root@89.111.175.31 << EOF
-cd /root/mini_app_prod
+cd /opt/mini_app_prod
 mkdir -p /etc/nginx/ssl
 docker compose -f docker-compose.vps.yml build
 docker compose -f docker-compose.vps.yml up -d
@@ -27,7 +31,7 @@ scp -i ~/.ssh/reg_ru ./ssl/back-loot.ru.key root@89.111.175.31:/etc/nginx/ssl/
 
 echo "📢 Обновление конфигурации Nginx..."
 ssh -i ~/.ssh/reg_ru root@89.111.175.31 << EOF
-cp /root/mini_app_prod/nginx.conf /etc/nginx/sites-available/default
+cp /opt/mini_app_prod/nginx.conf /etc/nginx/sites-available/default
 nginx -t && systemctl reload nginx
 EOF
 

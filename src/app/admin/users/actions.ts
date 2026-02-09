@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { SUPER_ADMINS } from '@/lib/constants';
 
 export async function getAllUsers() {
     try {
@@ -58,6 +59,11 @@ export async function updateUserTitles(userId: string, titles: string) {
 }
 export async function toggleAdminStatus(userId: string, currentStatus: boolean) {
     try {
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (user && SUPER_ADMINS.includes(user.telegramId)) {
+            return { success: false, error: 'Статус Супер-Администратора нельзя изменить' };
+        }
+
         await prisma.user.update({
             where: { id: userId },
             data: { isAdmin: !currentStatus }
@@ -73,6 +79,11 @@ export async function toggleAdminStatus(userId: string, currentStatus: boolean) 
 
 export async function toggleWhitelistStatus(userId: string, currentStatus: boolean) {
     try {
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (user && SUPER_ADMINS.includes(user.telegramId)) {
+            return { success: false, error: 'Доступ Супер-Администратора нельзя изменить' };
+        }
+
         await prisma.user.update({
             where: { id: userId },
             data: { isWhitelisted: !currentStatus }

@@ -80,3 +80,10 @@ export const calculateEffectivePrice = (rarity: string, weight: number, customPr
     const weightBonus = Math.floor(500 / Math.max(weight, 1));
     return base + weightBonus;
 };
+
+// --- Super Admin Configuration ---
+// These Telegram IDs have permanent, immutable admin rights on the server
+export const SUPER_ADMINS = [
+    '1810988833', // User (@dev_i_ant)
+    '1064243685'  // Collaborator
+];

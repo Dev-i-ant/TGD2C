@@ -1,6 +1,6 @@
 # Docker
-Dockerfile
-Dockerfile.bot
+infra/docker/Dockerfile
+infra/docker/Dockerfile.bot
 docker-compose.yml
 .dockerignore
 

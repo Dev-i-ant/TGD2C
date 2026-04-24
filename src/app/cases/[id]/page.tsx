@@ -149,7 +149,7 @@ export default function CaseOpenPage() {
         setShowWinEffectList(new Array(multiplier).fill(false));
 
         // 1. Call real action with multiplier
-        const result = await openCaseAction(tg.initDataUnsafe.user.id.toString(), id as string, multiplier);
+        const result = await openCaseAction(tg.initDataUnsafe.user.id.toString(), id as string, multiplier, tg.initData);
 
         if (!result.success) {
             alert(result.error);

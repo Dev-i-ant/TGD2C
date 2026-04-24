@@ -1,20 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { validateTelegramInitData } from '@/lib/telegramInitData';
 
 export async function POST(req: NextRequest) {
     try {
         const { initData } = await req.json();
+        const botToken = process.env.BOT_TOKEN;
 
-        // In a real app, you MUST validate the initData using your BOT_TOKEN
-        // For now, we will parse the user and create/update them in DB
-        const params = new URLSearchParams(initData);
-        const userStr = params.get('user');
-
-        if (!userStr) {
-            return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
+        if (!botToken) {
+            return NextResponse.json({ error: 'BOT_TOKEN is not configured' }, { status: 500 });
         }
 
-        const tgUser = JSON.parse(userStr);
+        const validation = validateTelegramInitData(initData, botToken);
+        if (!validation.valid || !validation.user) {
+            return NextResponse.json({ error: validation.error || 'Invalid initData' }, { status: 401 });
+        }
+
+        const tgUser = validation.user;
 
         const user = await prisma.user.upsert({
             where: { telegramId: tgUser.id.toString() },

@@ -3,7 +3,21 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { Logger } from '@/lib/logger';
-import { RARITIES, getRarityRank, calculateEffectivePrice, SUPER_ADMINS } from '@/lib/constants';
+import { RARITIES, getRarityRank, calculateEffectivePrice, pickWeightedReward, SUPER_ADMINS } from '@/lib/constants';
+import { validateTelegramInitData } from '@/lib/telegramInitData';
+
+const revalidatePaths = (paths: string[]) => {
+    for (const path of paths) {
+        revalidatePath(path);
+    }
+};
+
+const sanitizeNullableString = (value: unknown): string => {
+    if (value === null || value === undefined || value === 'null' || value === 'undefined') {
+        return '';
+    }
+    return String(value);
+};
 
 export async function resetAllUserDataAction() {
     try {
@@ -29,11 +43,7 @@ export async function resetAllUserDataAction() {
             })
         ]);
 
-        revalidatePath('/');
-        revalidatePath('/profile');
-        revalidatePath('/inventory');
-        revalidatePath('/history');
-        revalidatePath('/leaderboard');
+        revalidatePaths(['/', '/profile', '/inventory', '/history', '/leaderboard']);
 
         return { success: true };
     } catch (error) {
@@ -98,14 +108,12 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
         const isSuperAdmin = SUPER_ADMINS.includes(data.telegramId);
 
         // Sanitize incoming data to prevent "null"/"undefined" strings
-        const sanitize = (val: any) => (val === null || val === undefined || val === 'null' || val === 'undefined') ? '' : val;
-
         const cleanData = {
             telegramId: data.telegramId,
-            username: sanitize(data.username),
-            firstName: sanitize(data.firstName),
-            lastName: sanitize(data.lastName),
-            photoUrl: sanitize(data.photoUrl)
+            username: sanitizeNullableString(data.username),
+            firstName: sanitizeNullableString(data.firstName),
+            lastName: sanitizeNullableString(data.lastName),
+            photoUrl: sanitizeNullableString(data.photoUrl)
         };
 
         // Detailed debug logging
@@ -141,9 +149,24 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
         }
 
         // New User logic
-        let referredById = null;
+        let referredById: string | null = null;
         if (data.referralCode) {
-            // ... (referral lookup)
+            const normalizedCode = data.referralCode.trim();
+            if (normalizedCode) {
+                const referrer = await prisma.user.findFirst({
+                    where: {
+                        OR: [
+                            { id: normalizedCode },
+                            { referralCode: normalizedCode }
+                        ]
+                    },
+                    select: { id: true, telegramId: true }
+                });
+
+                if (referrer && referrer.telegramId !== cleanData.telegramId) {
+                    referredById = referrer.id;
+                }
+            }
         }
 
         const newUser = await prisma.user.create({
@@ -193,8 +216,7 @@ export async function syncUser(data: { telegramId: string; username?: string; fi
             ]);
         }
 
-        revalidatePath('/profile');
-        revalidatePath('/inventory');
+        revalidatePaths(['/profile', '/inventory']);
         return { success: true, user: newUser };
     } catch (error) {
         console.error('Failed to sync user:', error);
@@ -322,9 +344,20 @@ export async function getUserData(telegramId: string) {
     }
 }
 
-export async function openCaseAction(telegramId: string, caseId: string, count: number = 1) {
+export async function openCaseAction(telegramId: string, caseId: string, count: number = 1, initData?: string) {
     try {
         if (count < 1 || count > 5) return { success: false, error: 'Некорректное количество' };
+        const botToken = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.BOT_TOKEN;
+
+        if (botToken && initData) {
+            const validation = validateTelegramInitData(initData, botToken);
+            if (!validation.valid || !validation.user) {
+                return { success: false, error: 'Ошибка авторизации Telegram' };
+            }
+            if (validation.user.id.toString() !== telegramId) {
+                return { success: false, error: 'Неверный пользователь' };
+            }
+        }
 
         // 1. Get or create user
         const user = await prisma.user.upsert({
@@ -352,21 +385,11 @@ export async function openCaseAction(telegramId: string, caseId: string, count: 
         if (caseData.rewards.length === 0) return { success: false, error: 'Кейс пуст' };
 
         // 2. Select winners (Weight-based)
-        const totalWeight = caseData.rewards.reduce((acc: number, r: any) => acc + r.weight, 0);
-        const winners: any[] = [];
+        type CaseReward = (typeof caseData.rewards)[number];
+        const winners: CaseReward[] = [];
 
         for (let c = 0; c < count; c++) {
-            let randomNum = Math.random() * totalWeight;
-            let winner = caseData.rewards[0];
-
-            for (const reward of caseData.rewards) {
-                if (randomNum < reward.weight) {
-                    winner = reward;
-                    break;
-                }
-                randomNum -= reward.weight;
-            }
-            winners.push(winner);
+            winners.push(pickWeightedReward(caseData.rewards));
         }
 
         // 3. Transactional Update
@@ -485,9 +508,7 @@ export async function openCaseAction(telegramId: string, caseId: string, count: 
         // Re-fetch user to get updated points
         const updatedUser = await prisma.user.findUnique({ where: { id: user.id } });
 
-        revalidatePath('/inventory');
-        revalidatePath('/profile');
-        revalidatePath('/history');
+        revalidatePaths(['/inventory', '/profile', '/history']);
 
         return {
             success: true,
@@ -535,9 +556,7 @@ export async function sellItemAction(telegramId: string, itemId: string) {
             });
         });
 
-        revalidatePath('/inventory');
-        revalidatePath('/profile');
-        revalidatePath('/history');
+        revalidatePaths(['/inventory', '/profile', '/history']);
 
         return { success: true, sellPrice };
     } catch (error) {
@@ -558,7 +577,7 @@ export async function sellAllItemsAction(telegramId: string) {
         }
 
         let totalPoints = 0;
-        const itemIds = user.inventory.map(item => {
+        const itemIds = user.inventory.map((item: (typeof user.inventory)[number]) => {
             const price = calculateEffectivePrice(item.rarity, item.weight, (item as any).sellPrice);
             totalPoints += price;
             return item.id;
@@ -588,9 +607,7 @@ export async function sellAllItemsAction(telegramId: string) {
             });
         });
 
-        revalidatePath('/inventory');
-        revalidatePath('/profile');
-        revalidatePath('/history');
+        revalidatePaths(['/inventory', '/profile', '/history']);
 
         return { success: true, totalPoints, count: itemIds.length };
     } catch (error) {
@@ -704,8 +721,7 @@ export async function withdrawItemAction(telegramId: string, itemId: string) {
             } as any
         });
 
-        revalidatePath('/profile');
-        revalidatePath('/inventory');
+        revalidatePaths(['/profile', '/inventory']);
         Logger.info('Withdrawal: Completed successfully');
         return {
             success: true,
@@ -752,7 +768,11 @@ export async function syncWithdrawalStatusAction(telegramId: string) {
                     data: { status: 'WITHDRAWN' } as any
                 });
                 updatedCount++;
-            } else if (data.stage === '5' || data.stage === 'TRADE_STAGE_CANCELLED') { // Check cancellation
+            } else if (
+                Number(data.stage) === 5 ||
+                data.stage === '5' ||
+                data.stage === 'TRADE_STAGE_CANCELLED'
+            ) { // Check cancellation
                 await prisma.reward.update({
                     where: { id: item.id },
                     data: { status: 'IN_STOCK', marketId: null, withdrawAt: null } as any
@@ -762,8 +782,7 @@ export async function syncWithdrawalStatusAction(telegramId: string) {
         }
 
         if (updatedCount > 0) {
-            revalidatePath('/profile');
-            revalidatePath('/inventory');
+            revalidatePaths(['/profile', '/inventory']);
         }
         return { success: true, updatedCount };
     } catch (error) {
@@ -805,8 +824,7 @@ export async function updateTradeUrlAction(telegramId: string, tradeUrl: string)
             data: { tradeUrl }
         });
 
-        revalidatePath('/profile');
-        revalidatePath('/settings');
+        revalidatePaths(['/profile', '/settings']);
         return { success: true };
     } catch (error) {
         console.error('Update trade URL error:', error);

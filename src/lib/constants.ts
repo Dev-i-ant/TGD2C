@@ -81,9 +81,32 @@ export const calculateEffectivePrice = (rarity: string, weight: number, customPr
     return base + weightBonus;
 };
 
+export function pickWeightedReward<T extends { weight: number }>(items: T[]): T {
+    if (items.length === 0) {
+        throw new Error('pickWeightedReward requires a non-empty list');
+    }
+
+    const totalWeight = items.reduce((acc, item) => acc + item.weight, 0);
+    let randomNum = Math.random() * totalWeight;
+    let winner = items[0];
+
+    for (const item of items) {
+        if (randomNum < item.weight) {
+            winner = item;
+            break;
+        }
+        randomNum -= item.weight;
+    }
+
+    return winner;
+}
+
 // --- Super Admin Configuration ---
-// These Telegram IDs have permanent, immutable admin rights on the server
-export const SUPER_ADMINS = [
-    '1810988833', // User (@dev_i_ant)
-    '1064243685'  // Collaborator
-];
+// Configure via env: SUPER_ADMIN_IDS="123456789,987654321"
+const rawSuperAdminIds = (globalThis as { process?: { env?: Record<string, string | undefined> } })
+    .process?.env?.SUPER_ADMIN_IDS || '';
+
+export const SUPER_ADMINS = rawSuperAdminIds
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean);

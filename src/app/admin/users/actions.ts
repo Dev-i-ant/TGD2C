@@ -4,6 +4,17 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { SUPER_ADMINS } from '@/lib/constants';
 
+const revalidatePaths = (paths: string[]) => {
+    for (const path of paths) {
+        revalidatePath(path);
+    }
+};
+
+const normalizePoints = (points: number): number => {
+    if (!Number.isFinite(points)) return 0;
+    return Math.max(0, Math.floor(points));
+};
+
 export async function getAllUsers() {
     try {
         return await prisma.user.findMany({
@@ -30,12 +41,15 @@ export async function getAllUsers() {
 
 export async function updateUserPoints(userId: string, points: number) {
     try {
+        if (!userId) {
+            return { success: false, error: 'Пользователь не найден' };
+        }
+
         await prisma.user.update({
             where: { id: userId },
-            data: { points }
+            data: { points: normalizePoints(points) }
         });
-        revalidatePath('/admin/users');
-        revalidatePath('/profile');
+        revalidatePaths(['/admin/users', '/profile']);
         return { success: true };
     } catch (error) {
         console.error('Failed to update user points:', error);
@@ -45,12 +59,15 @@ export async function updateUserPoints(userId: string, points: number) {
 
 export async function updateUserTitles(userId: string, titles: string) {
     try {
+        if (!userId) {
+            return { success: false, error: 'Пользователь не найден' };
+        }
+
         await prisma.user.update({
             where: { id: userId },
-            data: { titles }
+            data: { titles: titles?.trim() || '' }
         });
-        revalidatePath('/admin/users');
-        revalidatePath('/profile');
+        revalidatePaths(['/admin/users', '/profile']);
         return { success: true };
     } catch (error) {
         console.error('Failed to update user titles:', error);
@@ -59,6 +76,10 @@ export async function updateUserTitles(userId: string, titles: string) {
 }
 export async function toggleAdminStatus(userId: string, currentStatus: boolean) {
     try {
+        if (!userId) {
+            return { success: false, error: 'Пользователь не найден' };
+        }
+
         const user = await prisma.user.findUnique({ where: { id: userId } });
         if (user && SUPER_ADMINS.includes(user.telegramId)) {
             return { success: false, error: 'Статус Супер-Администратора нельзя изменить' };
@@ -68,8 +89,7 @@ export async function toggleAdminStatus(userId: string, currentStatus: boolean) 
             where: { id: userId },
             data: { isAdmin: !currentStatus }
         });
-        revalidatePath('/admin/users');
-        revalidatePath('/profile');
+        revalidatePaths(['/admin/users', '/profile']);
         return { success: true };
     } catch (error) {
         console.error('Failed to toggle admin status:', error);
@@ -79,6 +99,10 @@ export async function toggleAdminStatus(userId: string, currentStatus: boolean) 
 
 export async function toggleWhitelistStatus(userId: string, currentStatus: boolean) {
     try {
+        if (!userId) {
+            return { success: false, error: 'Пользователь не найден' };
+        }
+
         const user = await prisma.user.findUnique({ where: { id: userId } });
         if (user && SUPER_ADMINS.includes(user.telegramId)) {
             return { success: false, error: 'Доступ Супер-Администратора нельзя изменить' };
@@ -88,8 +112,7 @@ export async function toggleWhitelistStatus(userId: string, currentStatus: boole
             where: { id: userId },
             data: { isWhitelisted: !currentStatus }
         });
-        revalidatePath('/admin/users');
-        revalidatePath('/profile');
+        revalidatePaths(['/admin/users', '/profile']);
         return { success: true };
     } catch (error) {
         console.error('Failed to toggle whitelist status:', error);

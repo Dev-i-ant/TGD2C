@@ -42,11 +42,25 @@
 1. Клонируйте репозиторий.
 2. Создайте файл `.env` на основе следующих данных:
    ```env
-   TELEGRAM_BOT_TOKEN=ваш_токен
+   # Токен Telegram-бота (используется для валидации initData на сервере)
+   BOT_TOKEN=ваш_токен_бота
+   TELEGRAM_BOT_TOKEN=ваш_токен_бота
+
+   # Ключ Market API
+   MARKET_API_KEY=ваш_market_api_key
+
+   # Список Telegram ID супер-админов через запятую (без пробелов)
+   # Пример: SUPER_ADMIN_IDS=123456789,987654321
+   SUPER_ADMIN_IDS=
+
    DATABASE_URL="file:./dev.db"
    NEXT_PUBLIC_APP_URL=ваш_cloudflare_url
    ```
-3. Запустите проект:
+3. Если у вас есть доступ к админке, обязательно заполните `SUPER_ADMIN_IDS`:
+   - укажите только числовые Telegram ID;
+   - несколько ID разделяйте запятой;
+   - не храните персональные ID в коде, только в `.env`.
+4. Запустите проект:
    ```bash
    docker-compose up -d --build
    ```

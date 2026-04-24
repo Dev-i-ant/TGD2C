@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { openCaseAction } from '@/app/actions/user';
+import { validateTelegramInitData } from '@/lib/telegramInitData';
 
 export async function GET() {
     const cases = await prisma.case.findMany({
@@ -10,55 +12,32 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
     try {
-        const { userId, caseId } = await req.json();
+        const { caseId, count = 1, initData } = await req.json();
+        const botToken = process.env.BOT_TOKEN;
 
-        const dotaCase = await prisma.case.findUnique({
-            where: { id: caseId },
-            include: { rewards: true }
+        if (!botToken) {
+            return NextResponse.json({ error: 'BOT_TOKEN is not configured' }, { status: 500 });
+        }
+
+        const validation = validateTelegramInitData(initData, botToken);
+        if (!validation.valid || !validation.user) {
+            return NextResponse.json({ error: validation.error || 'Invalid initData' }, { status: 401 });
+        }
+
+        if (!caseId || typeof caseId !== 'string') {
+            return NextResponse.json({ error: 'Invalid caseId' }, { status: 400 });
+        }
+
+        const result = await openCaseAction(validation.user.id.toString(), caseId, count, initData);
+        if (!result.success) {
+            return NextResponse.json({ error: result.error || 'Failed to open case' }, { status: 400 });
+        }
+
+        return NextResponse.json({
+            success: true,
+            winners: result.winners,
+            newPoints: result.newPoints
         });
-
-        if (!dotaCase) return NextResponse.json({ error: 'Case not found' }, { status: 404 });
-
-        const user = await prisma.user.findUnique({ where: { id: userId } });
-        if (!user || user.points < dotaCase.price) {
-            return NextResponse.json({ error: 'Not enough points' }, { status: 400 });
-        }
-
-        // RNG Logic
-        const rewards = dotaCase.rewards;
-        const totalWeight = rewards.reduce((sum: number, r: any) => sum + r.weight, 0);
-        let random = Math.random() * totalWeight;
-
-        let selectedReward = rewards[0];
-        for (const reward of rewards) {
-            if (random < reward.weight) {
-                selectedReward = reward;
-                break;
-            }
-            random -= reward.weight;
-        }
-
-        // Transaction: Deduct points, assign reward, and log transaction
-        await prisma.$transaction([
-            prisma.user.update({
-                where: { id: userId },
-                data: { points: { decrement: dotaCase.price } }
-            }),
-            prisma.reward.update({
-                where: { id: selectedReward.id },
-                data: { userId: user.id }
-            }),
-            prisma.transaction.create({
-                data: {
-                    userId: user.id,
-                    amount: -dotaCase.price,
-                    type: 'CASE_OPEN',
-                    description: `Открытие кейса: ${dotaCase.name}`
-                }
-            })
-        ]);
-
-        return NextResponse.json({ reward: selectedReward });
     } catch (error) {
         return NextResponse.json({ error: 'Server error' }, { status: 500 });
     }

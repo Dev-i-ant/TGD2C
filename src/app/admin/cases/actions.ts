@@ -3,6 +3,17 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
+const revalidatePaths = (paths: string[]) => {
+    for (const path of paths) {
+        revalidatePath(path);
+    }
+};
+
+const normalizePositiveNumber = (value: number, fallback: number): number => {
+    if (!Number.isFinite(value)) return fallback;
+    return Math.max(1, Math.floor(value));
+};
+
 export async function getCases() {
     try {
         return await prisma.case.findMany({
@@ -33,17 +44,20 @@ export async function createCase(data: {
     image?: string | null;
 }) {
     try {
+        if (!data.name?.trim()) {
+            return { success: false, error: 'Название кейса обязательно' };
+        }
+
         const newCase = await prisma.case.create({
             data: {
-                name: data.name,
-                price: data.price,
+                name: data.name.trim(),
+                price: normalizePositiveNumber(data.price, 1),
                 rarity: data.rarity,
                 color: data.color,
                 image: data.image || null,
             },
         });
-        revalidatePath('/cases');
-        revalidatePath('/admin/cases');
+        revalidatePaths(['/cases', '/admin/cases']);
         return { success: true, case: newCase };
     } catch (error) {
         console.error('Failed to create case:', error);
@@ -60,19 +74,22 @@ export async function updateCase(id: string, data: {
     image?: string | null;
 }) {
     try {
+        if (!id) return { success: false, error: 'Кейс не найден' };
+        if (!data.name?.trim()) {
+            return { success: false, error: 'Название кейса обязательно' };
+        }
+
         const updatedCase = await prisma.case.update({
             where: { id },
             data: {
-                name: data.name,
-                price: data.price,
+                name: data.name.trim(),
+                price: normalizePositiveNumber(data.price, 1),
                 rarity: data.rarity,
                 color: data.color,
                 image: data.image || null,
             },
         });
-        revalidatePath('/cases');
-        revalidatePath(`/cases/${id}`);
-        revalidatePath('/admin/cases');
+        revalidatePaths(['/cases', `/cases/${id}`, '/admin/cases']);
         return { success: true, case: updatedCase };
     } catch (error) {
         console.error('Failed to update case:', error);
@@ -82,11 +99,12 @@ export async function updateCase(id: string, data: {
 
 export async function deleteCase(id: string) {
     try {
+        if (!id) return { success: false, error: 'Кейс не найден' };
+
         await prisma.case.delete({
             where: { id },
         });
-        revalidatePath('/cases');
-        revalidatePath('/admin/cases');
+        revalidatePaths(['/cases', '/admin/cases']);
         return { success: true };
     } catch (error) {
         console.error('Failed to delete case:', error);
@@ -118,18 +136,20 @@ export async function addReward(caseId: string, data: {
     sellPrice?: number | null;
 }) {
     try {
+        if (!caseId) return { success: false, error: 'Кейс не найден' };
+        if (!data.name?.trim()) return { success: false, error: 'Название предмета обязательно' };
+
         const reward = await prisma.reward.create({
             data: {
-                name: data.name,
+                name: data.name.trim(),
                 rarity: data.rarity,
-                weight: data.weight,
+                weight: normalizePositiveNumber(data.weight, 100),
                 sellPrice: data.sellPrice || null,
                 image: data.image || null,
                 caseId: caseId,
             },
         });
-        revalidatePath(`/cases/${caseId}`);
-        revalidatePath(`/admin/cases/${caseId}/items`);
+        revalidatePaths([`/cases/${caseId}`, `/admin/cases/${caseId}/items`]);
         return { success: true, reward };
     } catch (error) {
         console.error('Failed to add reward:', error);
@@ -145,18 +165,20 @@ export async function updateReward(rewardId: string, caseId: string, data: {
     sellPrice?: number | null;
 }) {
     try {
+        if (!rewardId || !caseId) return { success: false, error: 'Предмет не найден' };
+        if (!data.name?.trim()) return { success: false, error: 'Название предмета обязательно' };
+
         const reward = await prisma.reward.update({
             where: { id: rewardId },
             data: {
-                name: data.name,
+                name: data.name.trim(),
                 rarity: data.rarity,
-                weight: data.weight,
+                weight: normalizePositiveNumber(data.weight, 100),
                 sellPrice: data.sellPrice !== undefined ? data.sellPrice : null,
                 image: data.image || null,
             },
         });
-        revalidatePath(`/cases/${caseId}`);
-        revalidatePath(`/admin/cases/${caseId}/items`);
+        revalidatePaths([`/cases/${caseId}`, `/admin/cases/${caseId}/items`]);
         return { success: true, reward };
     } catch (error) {
         console.error('Failed to update reward:', error);
@@ -166,11 +188,12 @@ export async function updateReward(rewardId: string, caseId: string, data: {
 
 export async function deleteReward(rewardId: string, caseId: string) {
     try {
+        if (!rewardId || !caseId) return { success: false, error: 'Предмет не найден' };
+
         await prisma.reward.delete({
             where: { id: rewardId },
         });
-        revalidatePath(`/cases/${caseId}`);
-        revalidatePath(`/admin/cases/${caseId}/items`);
+        revalidatePaths([`/cases/${caseId}`, `/admin/cases/${caseId}/items`]);
         return { success: true };
     } catch (error) {
         console.error('Failed to delete reward:', error);
@@ -200,13 +223,15 @@ export async function addGlobalItem(data: {
     defaultWeight?: number | null;
 }) {
     try {
+        if (!data.name?.trim()) return { success: false, error: 'Название предмета обязательно' };
+
         const item = await prisma.globalItem.create({
             data: {
-                name: data.name,
+                name: data.name.trim(),
                 rarity: data.rarity,
                 image: data.image || null,
                 sellPrice: data.sellPrice || null,
-                defaultWeight: data.defaultWeight || 100,
+                defaultWeight: normalizePositiveNumber(data.defaultWeight ?? 100, 100),
             },
         });
         revalidatePath('/admin/items');
@@ -225,14 +250,17 @@ export async function updateGlobalItem(id: string, data: {
     defaultWeight?: number | null;
 }) {
     try {
+        if (!id) return { success: false, error: 'Предмет не найден' };
+        if (!data.name?.trim()) return { success: false, error: 'Название предмета обязательно' };
+
         const item = await prisma.globalItem.update({
             where: { id },
             data: {
-                name: data.name,
+                name: data.name.trim(),
                 rarity: data.rarity,
                 image: data.image || null,
                 sellPrice: data.sellPrice || null,
-                defaultWeight: data.defaultWeight || 100,
+                defaultWeight: normalizePositiveNumber(data.defaultWeight ?? 100, 100),
             },
         });
         revalidatePath('/admin/items');
@@ -245,6 +273,8 @@ export async function updateGlobalItem(id: string, data: {
 
 export async function deleteGlobalItem(id: string) {
     try {
+        if (!id) return { success: false, error: 'Предмет не найден' };
+
         await prisma.globalItem.delete({
             where: { id },
         });
@@ -258,6 +288,8 @@ export async function deleteGlobalItem(id: string) {
 
 export async function addRewardFromLibrary(caseId: string, globalItemId: string, weight?: number | null) {
     try {
+        if (!caseId || !globalItemId) return { success: false, error: 'Некорректные данные' };
+
         const globalItem = await prisma.globalItem.findUnique({
             where: { id: globalItemId }
         });
@@ -270,13 +302,12 @@ export async function addRewardFromLibrary(caseId: string, globalItemId: string,
                 rarity: globalItem.rarity,
                 image: globalItem.image,
                 sellPrice: globalItem.sellPrice,
-                weight: weight || (globalItem as any).defaultWeight || 100,
+                weight: normalizePositiveNumber(weight ?? globalItem.defaultWeight ?? 100, 100),
                 caseId: caseId,
             },
         });
 
-        revalidatePath(`/cases/${caseId}`);
-        revalidatePath(`/admin/cases/${caseId}/items`);
+        revalidatePaths([`/cases/${caseId}`, `/admin/cases/${caseId}/items`]);
         return { success: true, reward };
     } catch (error) {
         console.error('Failed to add reward from library:', error);
@@ -285,6 +316,9 @@ export async function addRewardFromLibrary(caseId: string, globalItemId: string,
 }
 export async function autoBalanceCase(caseId: string, targetRtp: number = 85) {
     try {
+        if (!caseId) return { success: false, error: 'Кейс не найден' };
+        const safeTargetRtp = Math.min(200, Math.max(10, targetRtp));
+
         const c = await prisma.case.findUnique({
             where: { id: caseId },
             include: { rewards: { where: { userId: null } } }
@@ -294,7 +328,7 @@ export async function autoBalanceCase(caseId: string, targetRtp: number = 85) {
         if (c.rewards.length === 0) return { success: false, error: 'Кейс пуст' };
 
         // Group rewards by rarity to calculate weights
-        const rarityGroups: Record<string, any[]> = {};
+        const rarityGroups: Record<string, Array<(typeof c.rewards)[number]>> = {};
         c.rewards.forEach(r => {
             if (!rarityGroups[r.rarity]) rarityGroups[r.rarity] = [];
             rarityGroups[r.rarity].push(r);
@@ -304,10 +338,10 @@ export async function autoBalanceCase(caseId: string, targetRtp: number = 85) {
         const { ECONOMY_CONFIG } = await import('@/lib/constants');
 
         // Calculate the ratio between actual target and base target (85%)
-        const rtpRatio = targetRtp / 85;
+        const rtpRatio = safeTargetRtp / 85;
 
         const updates = c.rewards.map(r => {
-            const config = (ECONOMY_CONFIG as any)[r.rarity] || (ECONOMY_CONFIG as any).COMMON;
+            const config = ECONOMY_CONFIG[r.rarity as keyof typeof ECONOMY_CONFIG] || ECONOMY_CONFIG.COMMON;
 
             // Scaled multiplier based on target RTP
             const scaledMultiplier = config.multiplier * rtpRatio;
@@ -315,7 +349,7 @@ export async function autoBalanceCase(caseId: string, targetRtp: number = 85) {
 
             // Weight remains rarity-balanced
             const itemsCountInRarity = rarityGroups[r.rarity].length;
-            const suggestedWeight = Math.max(1, Math.floor((config.baseProbability * 100) / itemsCountInRarity));
+            const suggestedWeight = normalizePositiveNumber(Math.floor((config.baseProbability * 100) / itemsCountInRarity), 1);
 
             return prisma.reward.update({
                 where: { id: r.id },
@@ -328,8 +362,7 @@ export async function autoBalanceCase(caseId: string, targetRtp: number = 85) {
 
         await prisma.$transaction(updates);
 
-        revalidatePath(`/cases/${caseId}`);
-        revalidatePath(`/admin/cases/${caseId}/items`);
+        revalidatePaths([`/cases/${caseId}`, `/admin/cases/${caseId}/items`]);
         return { success: true };
     } catch (error) {
         console.error('Failed to auto-balance case:', error);

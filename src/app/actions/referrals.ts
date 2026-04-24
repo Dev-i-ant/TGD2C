@@ -10,6 +10,7 @@ export async function getReferralData(telegramId: string) {
             where: { telegramId: telegramId.toString() },
             select: {
                 id: true,
+                referralCode: true,
                 referralCount: true,
                 referralEarnings: true,
                 referrals: {
@@ -70,7 +71,7 @@ export async function getReferralData(telegramId: string) {
         }
 
         return {
-            referralCode: user.id,
+            referralCode: user.referralCode || user.id,
             referralCount: user.referralCount || 0,
             referralEarnings: effectiveEarnings,
             referrals: (user.referrals || []).map(r => {

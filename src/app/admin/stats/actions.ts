@@ -44,7 +44,8 @@ export async function getAdminStats() {
 
 export async function getSpendingChartData(hours: number = 24) {
     try {
-        const startTime = new Date(Date.now() - hours * 60 * 60 * 1000);
+        const safeHours = Number.isFinite(hours) ? Math.min(168, Math.max(1, Math.floor(hours))) : 24;
+        const startTime = new Date(Date.now() - safeHours * 60 * 60 * 1000);
 
         // Fetch CASE_OPEN transactions in the given period
         const transactions = await prisma.transaction.findMany({
@@ -57,7 +58,7 @@ export async function getSpendingChartData(hours: number = 24) {
 
         // Group by time interval (e.g., 10 groups)
         const groupsCount = 12;
-        const intervalMs = (hours * 60 * 60 * 1000) / groupsCount;
+        const intervalMs = (safeHours * 60 * 60 * 1000) / groupsCount;
 
         const chartData = Array.from({ length: groupsCount }).map((_, i) => {
             const groupStartTime = new Date(startTime.getTime() + i * intervalMs);

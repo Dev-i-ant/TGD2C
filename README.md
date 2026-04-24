@@ -37,7 +37,7 @@
 - **Bot**: Node.js скрипт для интеграции с Telegram API.
 - **Infrastructure**: Docker & Docker Compose.
 
-## 📦 Быстрый запуск (Docker)
+## 📦 Быстрый запуск (локально через Docker)
 
 1. Клонируйте репозиторий.
 2. Создайте файл `.env` на основе следующих данных:
@@ -48,6 +48,9 @@
 
    # Ключ Market API
    MARKET_API_KEY=ваш_market_api_key
+
+   # Cloudflare Tunnel token (если используете tunnel сервис)
+   TUNNEL_TOKEN=ваш_cloudflare_tunnel_token
 
    # Список Telegram ID супер-админов через запятую (без пробелов)
    # Пример: SUPER_ADMIN_IDS=123456789,987654321
@@ -64,6 +67,12 @@
    ```bash
    docker-compose up -d --build
    ```
+
+## 🔒 Security-check перед публикацией
+
+- Убедитесь, что в репозитории нет реальных значений токенов (`BOT_TOKEN`, `TELEGRAM_BOT_TOKEN`, `MARKET_API_KEY`, `TUNNEL_TOKEN`).
+- Все секреты должны храниться только в локальном `.env` (файл уже игнорируется через `.gitignore`).
+- Если токен когда-то попал в Git, его нужно отозвать/пересоздать у провайдера.
 
 Проект будет доступен внутри Telegram через ваш туннель или домен.
 

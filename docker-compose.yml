@@ -54,7 +54,7 @@ services:
     image: cloudflare/cloudflared:latest
     command: tunnel run
     environment:
-      - TUNNEL_TOKEN=eyJhIjoiZDZmNDUwY2JlNTc3NTJhMzMwN2Q3NjdmNTA3YTk4NzciLCJ0IjoiODVmYmIwMGQtYzY5YS00YTAzLTkzZDYtNTg1MTBmOTUzNWU4IiwicyI6IlkyWmtZamRsTmpZdE1XUTFOUzAwTjJZMExXSXhPVEl0T1RneFlqTXhNVGhqTVRBMiJ9
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
     depends_on:
       - web
     restart: unless-stopped

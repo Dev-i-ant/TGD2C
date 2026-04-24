@@ -77,6 +77,15 @@
 - Все секреты должны храниться только в локальном `.env` (файл уже игнорируется через `.gitignore`).
 - Если токен когда-то попал в Git, его нужно отозвать/пересоздать у провайдера.
 
+## 🧰 Полезные скрипты
+
+- Проверка баланса Market API: `npm run script:market-balance`
+- Очистка инвентарей пользователей: `npm run script:db-clear-inventories`
+- Создание тестового кейса: `npm run script:db-seed-test-case`
+- Обновление Dota кейсов: `npm run script:db-update-dota-cases`
+- Добавление тестового предмета: `npm run script:db-add-test-item`
+- Обновление цены тестового предмета: `npm run script:db-update-test-item-price`
+
 ## © Copyright
 
 - Автор: [Dev-i-ant](https://github.com/Dev-i-ant)

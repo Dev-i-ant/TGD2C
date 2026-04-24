@@ -1,5 +1,5 @@
 
-import { MarketApi } from '../lib/marketApi';
+import { MarketApi } from '../../src/lib/marketApi';
 
 async function main() {
     console.log('Checking Market Balance...');

@@ -8,7 +8,13 @@
     "build": "next build",
     "start": "NODE_ENV=production tsx src/server.ts",
     "lint": "eslint",
-    "bot": "tsx src/bot/index.ts"
+    "bot": "tsx src/bot/index.ts",
+    "script:market-balance": "tsx scripts/tools/check_market_balance.ts",
+    "script:db-clear-inventories": "tsx scripts/db/clear-inventories.ts",
+    "script:db-seed-test-case": "tsx scripts/db/seed_test_case.ts",
+    "script:db-update-dota-cases": "tsx scripts/db/update_dota_cases.ts",
+    "script:db-add-test-item": "tsx scripts/db/add_test_item.ts",
+    "script:db-update-test-item-price": "tsx scripts/db/update_test_item_price.ts"
   },
   "dependencies": {
     "@prisma/client": "^7.3.0",

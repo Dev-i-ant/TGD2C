@@ -5,7 +5,7 @@ import Script from "next/script";
 // Using system fonts to avoid build failures in restricted networks
 
 export const metadata: Metadata = {
-  title: "back-loot.ru",
+  title: "Dota 2 Case Opening",
   description: "Верни свою удачу — кейсы Dota 2",
 };
 
@@ -34,11 +34,22 @@ export default function RootLayout({
           <LanguageProvider>
             <TelegramProvider>
               <UserProvider>
-                <main className="max-w-md mx-auto min-h-screen relative">
+                <main className="max-w-md mx-auto min-h-screen relative pb-8">
                   <AppContent>
                     {children}
                   </AppContent>
                 </main>
+                <footer className="max-w-md mx-auto pb-2 text-center text-[10px] text-[var(--foreground)]/40">
+                  Copyright © 2026{' '}
+                  <a
+                    href="https://github.com/Dev-i-ant"
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="underline"
+                  >
+                    github.com/Dev-i-ant
+                  </a>
+                </footer>
               </UserProvider>
             </TelegramProvider>
           </LanguageProvider>

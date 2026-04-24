@@ -5,6 +5,7 @@ console.log('🚀 Starting bot process...');
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const webAppUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://your-app.trycloudflare.com';
+const channelUrl = process.env.TELEGRAM_CHANNEL_URL;
 
 if (!token) {
     console.error('❌ TELEGRAM_BOT_TOKEN is not defined in .env');
@@ -54,12 +55,14 @@ bot.start(async (ctx) => {
         console.error('Failed to set menu button:', e);
     }
 
+    const buttons = [[Markup.button.webApp('Открыть Mini App', appUrlWithParam)]];
+    if (channelUrl) {
+        buttons.push([Markup.button.url('Подписаться на канал', channelUrl)]);
+    }
+
     ctx.reply(
-        `Привет, ${ctx.from.first_name}! 🎮\n\nДобро пожаловать в back-loot.ru — верни свою удачу! 🍀\n\nЗаходи в приложение прямо сейчас и получи бесплатный прокрут кейса! 🎁`,
-        Markup.inlineKeyboard([
-            [Markup.button.webApp('Открыть Mini App', appUrlWithParam)],
-            [Markup.button.url('Подписаться на канал', 'https://t.me/+kZEYfYqhbSk3M2Ey')]
-        ])
+        `Привет, ${ctx.from.first_name}! 🎮\n\nДобро пожаловать в Dota 2 Case Opening — верни свою удачу! 🍀\n\nЗаходи в приложение прямо сейчас и получи бесплатный прокрут кейса! 🎁`,
+        Markup.inlineKeyboard(buttons)
     );
 });
 

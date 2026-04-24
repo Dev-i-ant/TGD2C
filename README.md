@@ -52,6 +52,9 @@
    # Cloudflare Tunnel token (если используете tunnel сервис)
    TUNNEL_TOKEN=ваш_cloudflare_tunnel_token
 
+   # Ссылка на Telegram-канал (опционально, для кнопки в боте)
+   TELEGRAM_CHANNEL_URL=
+
    # Список Telegram ID супер-админов через запятую (без пробелов)
    # Пример: SUPER_ADMIN_IDS=123456789,987654321
    SUPER_ADMIN_IDS=
@@ -73,6 +76,11 @@
 - Убедитесь, что в репозитории нет реальных значений токенов (`BOT_TOKEN`, `TELEGRAM_BOT_TOKEN`, `MARKET_API_KEY`, `TUNNEL_TOKEN`).
 - Все секреты должны храниться только в локальном `.env` (файл уже игнорируется через `.gitignore`).
 - Если токен когда-то попал в Git, его нужно отозвать/пересоздать у провайдера.
+
+## © Copyright
+
+- Автор: [Dev-i-ant](https://github.com/Dev-i-ant)
+- При использовании проекта сохраняйте copyright и текст лицензии MIT.
 
 Проект будет доступен внутри Telegram через ваш туннель или домен.
 

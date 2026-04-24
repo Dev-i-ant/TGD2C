@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "tsx src/server.ts",
+    "prebuild": "node scripts/verify-copyright.cjs",
     "build": "next build",
     "start": "NODE_ENV=production tsx src/server.ts",
     "lint": "eslint",
